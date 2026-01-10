@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusOS 9.1</title>
+    <link id="favicon" rel="icon" href="https://www.google.com/favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- MARKED.JS FOR MARKDOWN PARSING -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            /* --- THEME VARIABLES --- */
+            --bg-base: #050505;
+            --bg-gradient: radial-gradient(circle at center, #1e293b 0%, #000000 70%);
+            --glass-bg: rgba(18, 18, 18, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-blur: blur(16px);
+            --text-main: #ffffff;
+            --text-dim: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --card-bg: #111;
+            
+            /* --- PHYSICS --- */
+            --fluid: cubic-bezier(0.2, 0.8, 0.2, 1);
+            --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --smooth: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.light-mode {
+            --bg-base: #e2e8f0;
+            --bg-gradient: radial-gradient(circle at center, #f1f5f9 0%, #cbd5e1 70%);
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(0, 0, 0, 0.06);
+            --text-main: #0f172a;
+            --text-dim: #64748b;
+            --accent: #2563eb;
+            --accent-glow: rgba(37, 99, 235, 0.3);
+            --card-bg: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-font-smoothing: antialiased; outline: none; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            display: flex; flex-direction: column;
+            transition: color 0.5s, background-color 0.5s;
+        }
+
+        /* --- BACKGROUND --- */
+        #bg-wrapper { position: absolute; inset: 0; z-index: -2; overflow: hidden; background-size: cover; background-position: center; transition: 0.5s; }
+        #bg-default { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: var(--bg-gradient); animation: bgSpin 120s linear infinite; }
+        #bg-orb {
+            position: absolute; top: 50%; left: 50%; width: 800px; height: 800px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            transform: translate(-50%, -50%); filter: blur(80px); opacity: 0.4;
+            animation: orbPulse 10s ease-in-out infinite; pointer-events: none;
+        }
+        @keyframes bgSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes orbPulse { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.2); } }
+
+        /* --- INTERFACE --- */
+        #main-interface { opacity: 0; pointer-events: none; transition: opacity 0.8s var(--smooth); width: 100%; height: 100%; display: flex; flex-direction: column; }
+        #main-interface.unlocked { opacity: 1; pointer-events: auto; }
+
+        /* --- OOBE --- */
+        #oobe-overlay {
+            position: fixed; inset: 0; background: var(--bg-base); z-index: 10000; display: none;
+            flex-direction: column; align-items: center; justify-content: center; transition: opacity 1s var(--smooth);
+        }
+        .hello-word {
+            font-size: 5rem; font-weight: 800; background: linear-gradient(to right, var(--text-main), var(--text-dim));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            opacity: 0; transform: translateY(30px) scale(0.9); transition: 1.2s var(--bounce); margin-bottom: 30px;
+        }
+        .oobe-btn { opacity: 0; transform: translateY(20px); transition: 0.8s var(--fluid); }
+
+        /* --- MODALS --- */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px);
+            z-index: 11000; display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: 0.4s ease;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-box {
+            background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 24px;
+            padding: 30px; width: 500px; max-width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transform: scale(0.9) translateY(20px); transition: 0.4s var(--bounce); display: flex; flex-direction: column; max-height: 85vh;
+        }
+        .modal-overlay.active .modal-box { transform: scale(1) translateY(0); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+
+        /* Spoof Grid */
+        .spoof-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; overflow-y: auto; padding: 5px; }
+        .spoof-item {
+            background: rgba(125,125,125,0.1); border-radius: 12px; padding: 15px; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; gap: 8px; transition: 0.2s; border: 1px solid transparent;
+        }
+        .spoof-item:hover { background: rgba(125,125,125,0.2); transform: translateY(-3px); }
+        .spoof-item.selected { border-color: var(--accent); background: var(--accent-glow); }
+        .spoof-icon { width: 32px; height: 32px; border-radius: 6px; }
+        .spoof-name { font-size: 0.75rem; color: var(--text-dim); text-align: center; }
+
+        /* --- TOP BAR --- */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; z-index: 50; }
+        .nav-pill {
+            display: flex; gap: 5px; background: var(--glass-bg); padding: 5px;
+            border-radius: 100px; border: 1px solid var(--glass-border); backdrop-filter: var(--glass-blur);
+        }
+        .nav-item {
+            padding: 8px 24px; border-radius: 20px; cursor: pointer; font-weight: 500; font-size: 0.9rem;
+            color: var(--text-dim); transition: 0.3s;
+        }
+        .nav-item:hover { color: var(--text-main); background: rgba(125,125,125,0.1); }
+        .nav-item.active { background: rgba(125,125,125,0.2); color: var(--text-main); }
+
+        /* --- TRAY & CLOCK --- */
+        .system-tray { display: flex; align-items: center; gap: 15px; position: relative; }
+        .tray-item {
+            background: var(--glass-bg); border: 1px solid var(--glass-border); backdrop-filter: var(--glass-blur);
+            color: var(--text-main); height: 44px; display: flex; align-items: center; justify-content: center;
+            border-radius: 22px; transition: 0.3s var(--bounce); cursor: pointer;
+        }
+        .tray-item:hover { transform: scale(1.05); background: rgba(125,125,125,0.2); }
+        .clock { padding: 0 20px; font-variant-numeric: tabular-nums; font-weight: 600; min-width: 80px; }
+
+        /* --- NOTIFICATION CENTER --- */
+        #notification-center {
+            position: absolute; top: 60px; right: 0; width: 380px; max-height: 500px;
+            background: var(--card-bg); border: 1px solid var(--glass-border);
+            /* 12px blur effect as requested */
+            backdrop-filter: blur(12px); 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5); border-radius: 24px;
+            transform-origin: top right; transform: scale(0.9) translateY(-10px); 
+            opacity: 0; pointer-events: none; transition: 0.3s var(--bounce); z-index: 2000;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        #notification-center.active { transform: scale(1) translateY(0); opacity: 1; pointer-events: auto; }
+        
+        .nc-header {
+            padding: 15px 20px; border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(125,125,125,0.05);
+        }
+        .nc-title { font-weight: 700; font-size: 0.95rem; }
+        
+        .nc-body { 
+            padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; 
+            /* Hide Scrollbar */
+            scrollbar-width: none; -ms-overflow-style: none;
+        }
+        .nc-body::-webkit-scrollbar { display: none; }
+
+        /* Markdown Card Styling inside Notifications */
+        .notif-card {
+            background: rgba(125,125,125,0.05); border: 1px solid var(--glass-border);
+            border-radius: 16px; padding: 20px; font-size: 0.9rem; line-height: 1.5;
+            color: var(--text-dim); transition: 0.2s;
+        }
+        .notif-card:hover { background: rgba(125,125,125,0.08); }
+        
+        /* Markdown Formatting */
+        .notif-card h1, .notif-card h2, .notif-card h3 { color: var(--text-main); margin-bottom: 8px; margin-top: 15px; }
+        .notif-card h1:first-child, .notif-card h2:first-child { margin-top: 0; }
+        .notif-card p { margin-bottom: 10px; }
+        .notif-card ul { padding-left: 20px; margin-bottom: 10px; }
+        .notif-card li { margin-bottom: 5px; }
+        .notif-card a { color: var(--accent); text-decoration: none; }
+        .notif-card code { background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; font-family: monospace; }
+        .notif-card hr { border: 0; height: 1px; background: var(--glass-border); margin: 15px 0; }
+        .notif-loading { text-align: center; padding: 20px; color: var(--accent); }
+
+        /* --- TODO --- */
+        #todo-widget {
+            position: absolute; top: 60px; right: 0; width: 320px; background: var(--card-bg);
+            border: 1px solid var(--glass-border); box-shadow: 0 20px 40px rgba(0,0,0,0.4); border-radius: 20px; padding: 20px;
+            transform-origin: top right; transform: scale(0.9) translateY(-10px); opacity: 0; pointer-events: none; transition: 0.3s var(--bounce); z-index: 2000;
+        }
+        #todo-widget.active { transform: scale(1) translateY(0); opacity: 1; pointer-events: auto; }
+        .todo-input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .todo-input { flex: 1; background: rgba(125,125,125,0.1); border: none; padding: 8px 12px; border-radius: 8px; color: var(--text-main); }
+        .todo-list { list-style: none; max-height: 250px; overflow-y: auto; }
+        .todo-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid var(--glass-border); }
+        .todo-marker { width: 10px; height: 10px; border-radius: 50%; margin-right: 10px; }
+        .todo-text { flex: 1; font-size: 0.9rem; color: var(--text-main); }
+        .todo-del { color: #ef4444; cursor: pointer; opacity: 0.6; } .todo-del:hover { opacity: 1; transform: scale(1.1); }
+
+        /* --- VIEWPORT --- */
+        .view-container { flex: 1; position: relative; width: 100%; display: flex; overflow: hidden; }
+        .content-view {
+            position: absolute; inset: 0; opacity: 0; visibility: hidden; transform: scale(0.96) translateY(10px);
+            transition: opacity 0.4s ease, transform 0.5s var(--fluid), visibility 0.4s; display: flex; flex-direction: column;
+        }
+        .content-view.active-view { opacity: 1; visibility: visible; transform: scale(1) translateY(0); z-index: 10; }
+
+        /* --- GAMES HERO --- */
+        #games-view { justify-content: flex-end; padding-bottom: 0; }
+        .hero-area { padding: 0 60px 4vh 60px; max-width: 1200px; margin-bottom: auto; margin-top: 6vh; display: flex; flex-direction: column; justify-content: center; }
+        .hero-title {
+            font-size: clamp(3rem, 7vh, 6rem); font-weight: 800; line-height: 1.0; margin-bottom: 20px;
+            background: linear-gradient(180deg, var(--text-main), var(--text-dim)); -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent; opacity: 0; animation: fadeUp 0.8s var(--fluid) forwards 0.3s;
+        }
+        .games-container {
+            width: 100%; height: 52vh; min-height: 320px; background: linear-gradient(to top, var(--bg-base), transparent);
+            backdrop-filter: var(--glass-blur); display: flex; align-items: center; opacity: 0; animation: fadeIn 1s ease forwards 0.6s;
+        }
+        .carousel-track { display: flex; gap: 30px; padding: 0 100px; overflow-x: auto; scroll-behavior: smooth; width: 100%; height: 100%; align-items: center; scrollbar-width: none; }
+        .carousel-track::-webkit-scrollbar { display: none; }
+
+        /* --- GAME CARD --- */
+        .game-card { min-width: 240px; height: 340px; border-radius: 24px; position: relative; cursor: pointer; perspective: 1000px; }
+        .card-inner {
+            width: 100%; height: 100%; border-radius: 24px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
+            background: var(--card-bg); box-shadow: 0 15px 35px rgba(0,0,0,0.3); transition: transform 0.1s linear; position: relative;
+        }
+        .card-inner img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s var(--fluid), filter 0.5s; filter: brightness(0.8); }
+        .game-card:hover .card-inner { box-shadow: 0 0 30px var(--accent-glow); border-color: rgba(255,255,255,0.3); }
+        .game-card:hover img { transform: scale(1.1); filter: brightness(1); }
+        .card-title {
+            position: absolute; bottom: 20px; left: 20px; font-weight: 700; font-size: 1.2rem; color: white;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.9); opacity: 0; transform: translateY(10px); transition: 0.3s; pointer-events: none;
+        }
+        .game-card:hover .card-title { opacity: 1; transform: translateY(0); }
+
+        /* Custom Deletion X */
+        .card-del-btn {
+            position: absolute; top: -10px; right: -10px; width: 30px; height: 30px;
+            background: #ef4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 14px; opacity: 0; transform: scale(0.5); transition: 0.2s var(--bounce); z-index: 20;
+            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.5);
+        }
+        .game-card:hover .card-del-btn { opacity: 1; transform: scale(1); top: -10px; right: -10px; }
+        .card-del-btn:hover { transform: scale(1.2) rotate(90deg); background: #dc2626; }
+
+        /* Add Tile */
+        .add-tile .card-inner { display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(125,125,125,0.05); }
+        .add-icon { font-size: 3rem; color: var(--text-dim); transition: 0.3s; }
+        .add-tile:hover .add-icon { color: var(--accent); transform: scale(1.2); }
+        
+        /* New Badge */
+        .new-badge {
+            position: absolute; top: 15px; right: 15px; background: #22c55e; color: #000; font-weight: 800; font-size: 0.75rem;
+            height: 28px; width: 28px; border-radius: 14px; display: flex; align-items: center; overflow: hidden;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.5); z-index: 5; transition: width 0.4s var(--bounce);
+        }
+        .nb-content { display: flex; white-space: nowrap; }
+        .nb-n { width: 28px; text-align: center; flex-shrink: 0; display: flex; justify-content: center; align-items: center; }
+        .nb-full { opacity: 0; transition: 0.3s; padding-right: 12px; }
+        .game-card:hover .new-badge { width: 70px; } .game-card:hover .nb-full { opacity: 1; }
+
+        /* --- SETTINGS --- */
+        #settings-view { align-items: center; justify-content: center; background: rgba(0,0,0,0.2); }
+        .settings-box { 
+            width: 700px; max-height: 80vh; padding: 0; 
+            overflow-y: auto; background: var(--card-bg); border-radius: 30px; 
+            border: 1px solid var(--glass-border); box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            /* Hide Scrollbar */
+            scrollbar-width: none; -ms-overflow-style: none;
+        }
+        .settings-box::-webkit-scrollbar { display: none; }
+
+        .st-header {
+            padding: 30px 40px; border-bottom: 1px solid rgba(125,125,125,0.1);
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--card-bg); position: sticky; top: 0; z-index: 5;
+        }
+        .st-body { padding: 40px; }
+        
+        /* Group Cards */
+        .st-group { 
+            background: rgba(125,125,125,0.03); border: 1px solid rgba(125,125,125,0.1); 
+            border-radius: 20px; padding: 20px; margin-bottom: 20px; 
+        }
+        .st-group h3 { 
+            margin-bottom: 15px; color: var(--accent); font-size: 0.75rem; 
+            letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700;
+        }
+
+        .control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .control-row:last-child { margin-bottom: 0; }
+        
+        .st-input {
+            background: rgba(125,125,125,0.1); border: 1px solid var(--glass-border);
+            color: var(--text-main); padding: 8px 15px; border-radius: 10px; width: 220px;
+        }
+        .switch { position: relative; width: 42px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; inset: 0; background-color: rgba(125,125,125,0.3); transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s var(--bounce); border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(18px); }
+
+        .range-slider { width: 100%; -webkit-appearance: none; background: rgba(125,125,125,0.2); height: 6px; border-radius: 3px; }
+        .range-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; transition: 0.2s; }
+        .range-slider::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px; border-radius: 12px; font-weight: 600; text-decoration: none;
+            transition: all 0.2s var(--bounce); display: inline-flex; align-items: center; justify-content: center;
+            font-size: 0.9rem; cursor: pointer; border: none;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px var(--accent-glow); }
+        .btn-danger { background: rgba(220, 38, 38, 0.1); color: #ef4444; border: 1px solid rgba(220, 38, 38, 0.2); }
+        .btn-danger:hover { background: rgba(220, 38, 38, 0.2); color: #fff; }
+        .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--glass-border); }
+        .btn-ghost:hover { background: rgba(125,125,125,0.1); color: var(--text-main); }
+        
+        .beta-btn {
+            font-size: 0.75rem; padding: 6px 12px; background: rgba(125,125,125,0.15); 
+            color: var(--text-dim); text-decoration: none; border-radius: 8px; border: 1px solid var(--glass-border);
+            transition: 0.2s;
+        }
+        .beta-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Arrows */
+        .scroll-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%); width: 50px; height: 50px; border-radius: 50%;
+            background: rgba(125,125,125,0.1); display: flex; justify-content: center; align-items: center;
+            cursor: pointer; z-index: 100; transition: 0.3s; backdrop-filter: blur(10px);
+        }
+        .scroll-arrow:hover { background: var(--text-main); color: var(--bg-base); }
+        .scroll-arrow.left { left: 30px; } .scroll-arrow.right { right: 30px; }
+
+        @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+        @keyframes fadeUp { from{opacity:0; transform:translateY(30px);} to{opacity:1; transform:translateY(0);} }
+    </style>
+</head>
+<body>
+
+    <!-- OOBE LAYER -->
+    <div id="oobe-overlay">
+        <div class="hello-word" id="oobe-text">NexusOS 9.1</div>
+        <div class="oobe-controls oobe-btn" id="oobe-controls">
+            <button class="btn btn-primary" onclick="OOBE.finish()">Enter System</button>
+        </div>
+    </div>
+
+    <!-- SPOOF MODAL -->
+    <div id="spoof-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span class="modal-title">Tab Cloak</span>
+                <button class="btn btn-danger" style="padding:6px 12px;" onclick="Modals.close('spoof-modal')">Close</button>
+            </div>
+            <div class="spoof-grid" id="spoof-grid"></div>
+        </div>
+    </div>
+
+    <!-- ADD APP MODAL -->
+    <div id="add-game-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span class="modal-title">Add Custom App</span>
+                <button class="btn btn-danger" style="padding:6px 12px;" onclick="Modals.close('add-game-modal')">Cancel</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:15px;">
+                <input type="text" class="st-input" id="ag-title" placeholder="App Name (e.g., Minecraft)" style="width:100%">
+                <input type="text" class="st-input" id="ag-url" placeholder="URL (e.g., https://game.com)" style="width:100%">
+                
+                <div style="display:flex; gap:10px; margin-top:5px;">
+                    <button class="btn btn-ghost" onclick="AddGame.setType('favicon')" id="btn-fav">Use Favicon</button>
+                    <button class="btn btn-ghost" onclick="AddGame.setType('image')" id="btn-img">Custom Image</button>
+                </div>
+
+                <div id="ag-img-input-container" style="display:none; flex-direction:column; gap:10px;">
+                     <input type="text" class="st-input" id="ag-img-url" placeholder="Image URL" style="width:100%">
+                     <div style="text-align:center; font-size:0.8rem; color:var(--text-dim)">OR</div>
+                     <input type="file" id="ag-file" accept="image/*" style="color:var(--text-dim)">
+                </div>
+                <button class="btn btn-primary" style="margin-top:10px;" onclick="AddGame.save()">Add to Library</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BACKGROUND -->
+    <div id="bg-wrapper"><div id="bg-default"></div></div>
+    <div id="bg-orb"></div>
+
+    <!-- MAIN INTERFACE -->
+    <div id="main-interface">
+        <div class="top-bar">
+            <div class="nav-pill">
+                <div class="nav-item active" onclick="View.set('games')">Library</div>
+                <div class="nav-item" onclick="View.set('settings')">Settings</div>
+            </div>
+            <div class="system-tray">
+                <div class="clock tray-item" id="clock" onclick="Todo.toggle()"></div>
+                
+                <!-- NOTIFICATION ICON -->
+                <div class="tray-item icon-btn" onclick="Notifications.toggle()" style="width:44px; padding:0;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </div>
+
+                <div class="tray-item icon-btn" onclick="Utils.toggleFull()" style="width:44px; padding:0;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                </div>
+
+                <!-- NOTIFICATION CENTER -->
+                <div id="notification-center">
+                    <div class="nc-header">
+                        <span class="nc-title">Notifications</span>
+                        <button class="btn btn-ghost" style="padding:4px 10px; font-size:0.75rem;" onclick="Notifications.reload()">Refresh</button>
+                    </div>
+                    <div class="nc-body" id="notif-content">
+                        <div class="notif-loading">Loading Updates...</div>
+                    </div>
+                </div>
+
+                <!-- TODO LIST -->
+                <div id="todo-widget">
+                    <div class="todo-input-group">
+                        <input type="text" class="todo-input" id="todo-input" placeholder="Task..." onkeypress="Todo.handleInput(event)">
+                        <button class="btn btn-primary" style="padding:0 12px;" onclick="Todo.add()">+</button>
+                    </div>
+                    <ul class="todo-list" id="todo-list"></ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="view-container">
+            <!-- LIBRARY -->
+            <div id="games-view" class="content-view active-view">
+                <div class="hero-area">
+                    <div class="hero-title" id="hero-text">Select App</div>
+                    <div class="hero-actions" style="opacity:0; animation:fadeIn 1s forwards 0.5s;">
+                        <a href="#" target="_blank" id="play-btn" class="btn btn-primary">Launch</a>
+                    </div>
+                </div>
+                <div class="games-container">
+                    <div class="scroll-arrow left" onclick="Games.scroll(-1)">&#10094;</div>
+                    <div class="scroll-arrow right" onclick="Games.scroll(1)">&#10095;</div>
+                    <div class="carousel-track" id="card-track"></div>
+                </div>
+            </div>
+
+            <!-- SETTINGS -->
+            <div id="settings-view" class="content-view">
+                <div class="settings-box">
+                    <div class="st-header">
+                        <h2>Control Center</h2>
+                        <a href="https://nexusx.w3spaces.com/beta.html" class="beta-btn">Go to Beta &#8599;</a>
+                    </div>
+                    
+                    <div class="st-body">
+                        <div class="st-group">
+                            <h3>Visuals</h3>
+                            <div class="control-row">
+                                <span>Light Mode</span>
+                                <label class="switch"><input type="checkbox" id="theme-toggle" onchange="Settings.toggleTheme()"><span class="slider"></span></label>
+                            </div>
+                            <div class="control-row">
+                                <span>Background URL</span>
+                                <input type="text" class="st-input" id="bg-input" placeholder="https://..." onchange="Settings.setBg(this.value)">
+                            </div>
+                            <div class="control-row">
+                                <span>Tab Cloak</span>
+                                <button class="btn btn-ghost" onclick="Modals.open('spoof-modal')">Change</button>
+                            </div>
+                            <div class="control-row" style="flex-direction:column; align-items:flex-start; gap:10px; margin-top:15px;">
+                                <span>3D Tilt Intensity: <span id="tilt-val" style="color:var(--accent)">500</span></span>
+                                <input type="range" min="0" max="1000" value="500" class="range-slider" oninput="Settings.setTilt(this.value)">
+                            </div>
+                        </div>
+
+                        <div class="st-group">
+                            <h3>System</h3>
+                            <div class="control-row">
+                                <span>24-Hour Time</span>
+                                <label class="switch"><input type="checkbox" id="time-toggle" onchange="Settings.toggleTime()"><span class="slider"></span></label>
+                            </div>
+                            <div class="control-row">
+                                <span>Anti-Close</span>
+                                <label class="switch"><input type="checkbox" id="ptc-toggle" onchange="Settings.togglePrevent()"><span class="slider"></span></label>
+                            </div>
+                        </div>
+
+                        <div class="st-group">
+                            <h3>Data & Reset</h3>
+                            <div class="control-row">
+                                <span>Factory Reset</span>
+                                <button class="btn btn-danger" onclick="OOBE.reset()">Reset</button>
+                            </div>
+                            <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="Utils.openBlank()">Launch in about:blank</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- STATE --- */
+        const State = {
+            version: "9.1",
+            oobeKey: "nx_oobe_v9_1",
+            settings: {
+                time24: localStorage.getItem('nx_time24') === 'true',
+                preventClose: localStorage.getItem('nx_prevent') === 'true',
+                cloak: localStorage.getItem('nx_cloak') || 'none',
+                bg: localStorage.getItem('nx_bg') || '',
+                todos: JSON.parse(localStorage.getItem('nx_todos') || '[]'),
+                lightMode: localStorage.getItem('nx_light') === 'true',
+                tilt: parseInt(localStorage.getItem('nx_tilt') || '500'), // Default 500
+                customGames: JSON.parse(localStorage.getItem('nx_custom_games') || '[]')
+            }
+        };
+
+        const DefaultGames = [
+            { title: "BitLife", url: "https://nexusx.w3spaces.com/bitlife.html", image: "https://images.unsplash.com/photo-1563207153-f403bf289096?q=80&w=1000&auto=format&fit=crop", isNew: true },
+            { title: "Snow Rider 3D", url: "https://nexusx.w3spaces.com/snow.html", image: "https://images.pexels.com/photos/688660/pexels-photo-688660.jpeg", isNew: true },
+            { title: "Tetris", url: "https://nexusx.w3spaces.com/tetris.html", image: "https://images.unsplash.com/vector-1753382303802-7d317d852293?w=1920", isNew: true },
+            { title: "GNMath V2", url: "https://nexusx.w3spaces.com/gnmath.html", image: "https://images.unsplash.com/photo-1648700231913-ad061d9b3ec9?w=1920", isNew: true },
+            { title: "Snake", url: "https://nexusx.w3spaces.com/snake.html", image: "https://images.unsplash.com/photo-1739869610059-86fabc7bcd7b?fit=clip&w=2500" },
+            { title: "Hex", url: "https://www.nddb.coop/ccnddb/games/Hexagon Twist/", image: "https://images.unsplash.com/vector-1761047846560-52720ea86a46?w=1920" },
+            { title: "Dino Run", url: "https://nexusx.w3spaces.com/dino.html", image: "https://images.unsplash.com/vector-1761941086671-a623243d84a3?w=1920" },
+            { title: "Flappy Bird", url: "https://nexusx.w3spaces.com/bird.html", image: "https://images.unsplash.com/photo-1732198246906-8168ef1ff6bc?q=80&w=1740" },
+            { title: "Drive Mad", url: "https://nexusx.w3spaces.com/drive-mad.html", image: "https://images.unsplash.com/photo-1763897236977-1baa4a026a6d?q=80&w=2064" },
+            { title: "Mario Kart", url: "https://nexusx.w3spaces.com/mariokart.html", image: "https://images.unsplash.com/photo-1764760764931-95cec7292c89?q=80&w=774" },
+            { title: "Bank Heist", url: "https://nexusx.w3spaces.com/bank.html", image: "https://images.unsplash.com/photo-1738691035045-3fb009e8aa26?fit=clip&w=2500" },
+            { title: "Slither.io", url: "https://nexusx.w3spaces.com/snakeio.html", image: "https://images.unsplash.com/photo-1736613403120-8d48aebd29e1?fit=clip&w=2500" },
+            { title: "Escape Road", url: "https://nexusx.w3spaces.com/escape.html", image: "https://images.unsplash.com/photo-1764957080454-dd997a855733?q=80&w=774" },
+        ];
+
+        const Spoofs = [
+            { id: 'none', t: 'NexusOS 9.1', i: 'https://www.google.com/favicon.ico' },
+            { id: 'google', t: 'Google', i: 'https://www.google.com/favicon.ico' },
+            { id: 'canvas', t: 'Dashboard', i: 'https://du11hjcvx0uqb.cloudfront.net/dist/images/favicon-e10d657a73.ico' },
+            { id: 'clever', t: 'Clever | Portal', i: 'https://assets.clever.com/favicon.ico' },
+            { id: 'classroom', t: 'Classes', i: 'https://ssl.gstatic.com/classroom/favicon.png' },
+            { id: 'drive', t: 'My Drive', i: 'https://ssl.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png' },
+            { id: 'gmail', t: 'Inbox', i: 'https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico' }
+        ];
+
+        /* --- LOGIC --- */
+        const Utils = {
+            toggleFull: () => !document.fullscreenElement ? document.documentElement.requestFullscreen() : document.exitFullscreen(),
+            openBlank: () => {
+                let win = window.open();
+                win.document.body.style.margin="0"; win.document.body.style.height="100vh";
+                let iframe = win.document.createElement('iframe');
+                iframe.style.cssText = "border:none; width:100%; height:100%;";
+                iframe.src = window.location.href;
+                win.document.body.appendChild(iframe);
+            },
+            getBase64: (file) => new Promise((res, rej) => {
+                const r = new FileReader(); r.readAsDataURL(file);
+                r.onload=()=>res(r.result); r.onerror=e=>rej(e);
+            })
+        };
+
+        const Notifications = {
+            loaded: false,
+            toggle: () => {
+                const el = document.getElementById('notification-center');
+                const isActive = el.classList.toggle('active');
+                if(isActive && !Notifications.loaded) Notifications.reload();
+                // Close Todo if open
+                if(isActive) document.getElementById('todo-widget').classList.remove('active');
+            },
+            reload: () => {
+                const content = document.getElementById('notif-content');
+                content.innerHTML = '<div class="notif-loading">Updating...</div>';
+                fetch('https://raw.githubusercontent.com/StrikerXR/NexusX-assets/refs/heads/main/notification.md')
+                    .then(r => r.text())
+                    .then(text => {
+                        // Parse markdown using Marked.js
+                        const html = marked.parse(text);
+                        // Wrap in a card for better styling
+                        content.innerHTML = `<div class="notif-card">${html}</div>`;
+                        Notifications.loaded = true;
+                    })
+                    .catch(e => {
+                        content.innerHTML = `<div class="notif-card" style="color:#ef4444">Failed to load notifications.<br>Check internet connection.</div>`;
+                    });
+            }
+        };
+
+        const Games = {
+            list: [],
+            render: () => {
+                const track = document.getElementById('card-track');
+                track.innerHTML = "";
+                Games.list = [...DefaultGames, ...State.settings.customGames];
+                
+                Games.list.forEach((g, i) => {
+                    let card = document.createElement('div');
+                    card.className = "game-card";
+                    const isCustom = i >= DefaultGames.length;
+                    
+                    let html = ``;
+                    if(g.isNew) html += `<div class="new-badge"><div class="nb-content"><div class="nb-n">N</div><div class="nb-full">ew</div></div></div>`;
+                    // Red X for Custom Apps Only
+                    if(isCustom) html += `<div class="card-del-btn" onclick="event.stopPropagation(); Games.removeCustom(${i - DefaultGames.length})">✕</div>`;
+
+                    html += `<div class="card-inner"><img src="${g.image}" loading="lazy"></div><div class="card-title">${g.title}</div>`;
+                    
+                    card.innerHTML = html;
+                    card.onclick = () => window.open(g.url, '_blank');
+                    card.onmouseenter = () => Games.hero(i);
+                    Games.addTilt(card);
+                    track.appendChild(card);
+                });
+
+                let addTile = document.createElement('div');
+                addTile.className = "game-card add-tile";
+                addTile.innerHTML = `<div class="card-inner"><div class="add-icon">+</div></div>`;
+                addTile.onclick = () => Modals.open('add-game-modal');
+                Games.addTilt(addTile);
+                track.appendChild(addTile);
+
+                Games.hero(0);
+            },
+            hero: (i) => {
+                if(!Games.list[i]) return;
+                const txt = document.getElementById('hero-text');
+                const btn = document.getElementById('play-btn');
+                txt.style.opacity = 0.5;
+                setTimeout(() => { txt.textContent = Games.list[i].title; txt.style.opacity = 1; }, 100);
+                btn.href = Games.list[i].url;
+            },
+            removeCustom: (idx) => {
+                if(confirm("Remove this app?")) {
+                    State.settings.customGames.splice(idx, 1);
+                    Settings.save('nx_custom_games', JSON.stringify(State.settings.customGames));
+                    Games.render();
+                }
+            },
+            addTilt: (card) => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    // Refined math: 0-1000 input maps to a factor
+                    const tiltFactor = State.settings.tilt / 1000; // 0.0 to 1.0
+                    const maxRot = 25; // Max degrees
+
+                    const x = (e.clientX - rect.left - rect.width/2) / (rect.width/2);
+                    const y = -(e.clientY - rect.top - rect.height/2) / (rect.height/2);
+                    
+                    const rotX = y * maxRot * tiltFactor;
+                    const rotY = x * maxRot * tiltFactor;
+
+                    card.querySelector('.card-inner').style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.querySelector('.card-inner').style.transform = `rotateX(0) rotateY(0)`;
+                });
+            },
+            scroll: (d) => document.getElementById('card-track').scrollBy({ left: d * 320, behavior: 'smooth' })
+        };
+
+        const Settings = {
+            apply: () => {
+                document.getElementById('theme-toggle').checked = State.settings.lightMode;
+                document.getElementById('time-toggle').checked = State.settings.time24;
+                document.getElementById('ptc-toggle').checked = State.settings.preventClose;
+                document.getElementById('bg-input').value = State.settings.bg;
+                document.getElementById('tilt-val').innerText = State.settings.tilt;
+                document.querySelector('.range-slider').value = State.settings.tilt;
+
+                if(State.settings.lightMode) document.body.classList.add('light-mode');
+                Settings.setBg(State.settings.bg);
+                Settings.setCloak(State.settings.cloak);
+            },
+            toggleTheme: () => {
+                State.settings.lightMode = !State.settings.lightMode;
+                document.body.classList.toggle('light-mode', State.settings.lightMode);
+                Settings.save('nx_light', State.settings.lightMode);
+            },
+            toggleTime: () => {
+                State.settings.time24 = !State.settings.time24;
+                Settings.save('nx_time24', State.settings.time24);
+                Clock.update();
+            },
+            togglePrevent: () => {
+                State.settings.preventClose = !State.settings.preventClose;
+                Settings.save('nx_prevent', State.settings.preventClose);
+            },
+            setBg: (url) => {
+                State.settings.bg = url;
+                Settings.save('nx_bg', url);
+                const wrap = document.getElementById('bg-wrapper');
+                if(url && url.trim() !== "") {
+                    wrap.style.backgroundImage = `url('${url}')`;
+                    document.getElementById('bg-default').style.opacity = 0;
+                } else {
+                    wrap.style.backgroundImage = 'none';
+                    document.getElementById('bg-default').style.opacity = 1;
+                }
+            },
+            setTilt: (val) => {
+                State.settings.tilt = parseInt(val);
+                document.getElementById('tilt-val').innerText = val;
+                Settings.save('nx_tilt', val);
+            },
+            setCloak: (id) => {
+                State.settings.cloak = id;
+                Settings.save('nx_cloak', id);
+                const s = Spoofs.find(x => x.id === id) || Spoofs[0];
+                document.title = s.t;
+                document.getElementById('favicon').href = s.i;
+                document.querySelectorAll('.spoof-item').forEach(el => el.classList.toggle('selected', el.dataset.id === id));
+            },
+            save: (k, v) => localStorage.setItem(k, v)
+        };
+
+        const Clock = {
+            el: document.getElementById('clock'),
+            update: () => {
+                const now = new Date();
+                let h = now.getHours();
+                let m = now.getMinutes();
+                
+                // Manual 12h/24h formatting to remove AM/PM
+                if(!State.settings.time24) {
+                    h = h % 12;
+                    if(h === 0) h = 12;
+                }
+                const mStr = m < 10 ? '0'+m : m;
+                Clock.el.textContent = `${h}:${mStr}`;
+            }
+        };
+
+        const Todo = {
+            toggle: () => {
+                const el = document.getElementById('todo-widget');
+                const isActive = el.classList.toggle('active');
+                if(isActive) document.getElementById('notification-center').classList.remove('active');
+            },
+            handleInput: (e) => { if(e.key==='Enter') Todo.add(); },
+            add: () => {
+                const input = document.getElementById('todo-input');
+                if(!input.value.trim()) return;
+                State.settings.todos.push({ t: input.value.trim() });
+                Settings.save('nx_todos', JSON.stringify(State.settings.todos));
+                Todo.render();
+                input.value = "";
+            },
+            remove: (i) => {
+                State.settings.todos.splice(i, 1);
+                Settings.save('nx_todos', JSON.stringify(State.settings.todos));
+                Todo.render();
+            },
+            render: () => {
+                const list = document.getElementById('todo-list');
+                list.innerHTML = "";
+                State.settings.todos.forEach((item, i) => {
+                    let li = document.createElement('li');
+                    li.className = "todo-item";
+                    li.innerHTML = `<div class="todo-marker" style="background:#3b82f6"></div><span class="todo-text">${item.t}</span><div class="todo-del" onclick="Todo.remove(${i})">✕</div>`;
+                    list.appendChild(li);
+                });
+            }
+        };
+
+        const AddGame = {
+            type: 'favicon',
+            setType: (t) => {
+                AddGame.type = t;
+                document.getElementById('btn-fav').style.background = t === 'favicon' ? 'rgba(59,130,246,0.2)' : 'transparent';
+                document.getElementById('btn-img').style.background = t === 'image' ? 'rgba(59,130,246,0.2)' : 'transparent';
+                document.getElementById('ag-img-input-container').style.display = t === 'image' ? 'flex' : 'none';
+            },
+            save: async () => {
+                const title = document.getElementById('ag-title').value;
+                const url = document.getElementById('ag-url').value;
+                if(!title || !url) return alert("Required fields missing");
+
+                let img = "";
+                if(AddGame.type === 'favicon') {
+                    let d = url.replace('http://','').replace('https://','').split(/[/?#]/)[0];
+                    img = `https://www.google.com/s2/favicons?domain=${d}&sz=128`;
+                } else {
+                    const iUrl = document.getElementById('ag-img-url').value;
+                    const file = document.getElementById('ag-file').files[0];
+                    if(iUrl) img = iUrl;
+                    else if(file) {
+                        try { img = await Utils.getBase64(file); } catch(e){ return alert("Image Error"); }
+                    } else return alert("Image required");
+                }
+
+                State.settings.customGames.push({ title, url, image: img });
+                Settings.save('nx_custom_games', JSON.stringify(State.settings.customGames));
+                Games.render();
+                Modals.close('add-game-modal');
+                // Cleanup
+                document.getElementById('ag-title').value=""; document.getElementById('ag-url').value="";
+            }
+        };
+
+        const Modals = {
+            open: (id) => document.getElementById(id).classList.add('active'),
+            close: (id) => document.getElementById(id).classList.remove('active')
+        };
+
+        const View = {
+            set: (v) => {
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                document.querySelectorAll('.content-view').forEach(c => c.classList.remove('active-view'));
+                
+                const idx = v === 'games' ? 0 : 1;
+                document.querySelectorAll('.nav-item')[idx].classList.add('active');
+                document.getElementById(v+'-view').classList.add('active-view');
+            }
+        };
+
+        const OOBE = {
+            init: () => {
+                if(!localStorage.getItem(State.oobeKey)) {
+                    document.getElementById('oobe-overlay').style.display = 'flex';
+                    const txt = document.getElementById('oobe-text');
+                    setTimeout(() => { txt.style.opacity=1; txt.style.transform="translateY(0)"; }, 100);
+                    setTimeout(() => document.getElementById('oobe-controls').style.opacity=1, 2000);
+                } else {
+                    document.getElementById('main-interface').classList.add('unlocked');
+                }
+            },
+            finish: () => {
+                localStorage.setItem(State.oobeKey, 'true');
+                document.getElementById('oobe-overlay').style.opacity = 0;
+                setTimeout(() => {
+                    document.getElementById('oobe-overlay').style.display = 'none';
+                    document.getElementById('main-interface').classList.add('unlocked');
+                }, 1000);
+            },
+            reset: () => { if(confirm("Reset Everything?")) { localStorage.clear(); location.reload(); } }
+        };
+
+        window.onload = () => {
+            // --- SCREEN SIZE KICKSTART FIX ---
+            // Forces a zoom out then back in to fix specific mobile scaling bugs
+            if(window.innerWidth < 800) {
+                const metaViewport = document.querySelector('meta[name="viewport"]');
+                if(metaViewport) {
+                    metaViewport.setAttribute('content', 'width=device-width, initial-scale=0.1');
+                    setTimeout(() => {
+                        metaViewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
+                    }, 50);
+                }
+            }
+
+            Settings.apply();
+            Games.render();
+            Todo.render();
+            Clock.update();
+            setInterval(Clock.update, 1000);
+            
+            const sg = document.getElementById('spoof-grid');
+            Spoofs.forEach(s => {
+                let d = document.createElement('div'); d.className = "spoof-item"; d.dataset.id = s.id;
+                d.innerHTML = `<img src="${s.i}" class="spoof-icon"><div class="spoof-name">${s.t}</div>`;
+                d.onclick = () => Settings.setCloak(s.id);
+                sg.appendChild(d);
+            });
+            Settings.setCloak(State.settings.cloak);
+            OOBE.init();
+        };
+        
+        window.addEventListener('beforeunload', (e) => {
+            if(State.settings.preventClose) { e.preventDefault(); e.returnValue = ''; }
+        });
+    </script>
+</body>
+</html>
