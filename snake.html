@@ -1,0 +1,903 @@
+ ﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Classic Snake Game</title>
+   <!-- Load Tailwind CSS -->
+   <script src="https://cdn.tailwindcss.com"></script>
+   <!-- Load Inter font -->
+   <style>
+       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+       /* Set dark background for the body */
+       body { font-family: 'Inter', sans-serif; background-color: #1f2937; color: #f3f4f6; }
+       /* Custom CSS for the Canvas */
+       #gameCanvas {
+           box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+           border-radius: 0.75rem; /* rounded-xl */
+           border: 4px solid #111827; /* border-gray-900 */
+       }
+       /* Style for the mode buttons when not selected */
+       .difficulty-btn {
+           transition: all 0.3s ease;
+           filter: brightness(0.9);
+       }
+       .difficulty-btn:hover {
+           filter: brightness(1.1);
+       }
+       /* Style for the selected mode button */
+       .difficulty-btn.bg-indigo-600 {
+           filter: brightness(1);
+           transform: scale(1.05);
+           box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.5); /* Indigo shadow */
+       }
+   </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+
+   <!-- Dark Mode Container -->
+   <div id="app" class="w-full max-w-lg bg-gray-700 rounded-2xl shadow-2xl p-6 md:p-8">
+       <h1 class="text-4xl font-black text-center text-indigo-400 mb-2">🐍 Retro Snake 🍎</h1>
+       <p class="text-center text-sm text-gray-300 mb-6">Master the grid. Speed increases as you grow!</p>
+
+
+       <!-- Score and Mode Display -->
+       <div class="flex justify-between items-center bg-gray-900 text-white p-3 rounded-xl mb-4 text-center font-semibold shadow-xl">
+           <div class="flex flex-col">
+               <span class="text-xs text-gray-400">SCORE</span>
+               <span id="score" class="text-2xl text-yellow-300 font-bold">0</span>
+           </div>
+           <div class="flex flex-col">
+               <span class="text-xs text-gray-400">MODE</span>
+               <span id="current-mode" class="text-2xl capitalize text-indigo-400 font-bold"></span>
+           </div>
+           <div class="flex flex-col">
+               <span class="text-xs text-gray-400">HIGH SCORE</span>
+               <span id="high-score" class="text-2xl text-pink-400 font-bold">0</span>
+           </div>
+       </div>
+
+
+       <!-- Game Canvas -->
+       <canvas id="gameCanvas" width="400" height="400" class="w-full h-auto bg-black"></canvas>
+
+
+       <!-- Message Box (Used instead of alert/confirm) -->
+       <div id="message-box" class="fixed inset-0 bg-gray-900 bg-opacity-90 hidden items-center justify-center p-4 z-50">
+           <div class="bg-gray-800 rounded-xl p-8 shadow-2xl max-w-sm w-full text-center border-4 border-indigo-600">
+               <h3 id="message-title" class="text-3xl font-black mb-4 text-white">Ready to Play?</h3>
+              
+               <!-- DIFFICULTY SELECTION IS NOW HERE -->
+               <div id="difficulty-selector" class="flex justify-between space-x-2 mb-6">
+                   <button data-speed="150" data-mode="easy" class="difficulty-btn w-1/4 py-2 text-sm font-bold rounded-lg bg-green-500 text-white shadow-lg">Easy</button>
+                   <button data-speed="100" data-mode="medium" class="difficulty-btn w-1/4 py-2 text-sm font-bold rounded-lg bg-blue-500 text-white shadow-lg">Medium</button>
+                   <button data-speed="70" data-mode="hard" class="difficulty-btn w-1/4 py-2 text-sm font-bold rounded-lg bg-orange-500 text-white shadow-lg">Hard</button>
+                   <button data-speed="40" data-mode="extreme" class="difficulty-btn w-1/4 py-2 text-sm font-bold rounded-lg bg-red-600 text-white shadow-lg">Extreme</button>
+               </div>
+
+
+               <p id="message-content" class="text-gray-300 mb-6"></p>
+
+
+               <!-- Start and Auto Snake buttons -->
+               <button id="start-game-btn" class="w-full py-3 bg-indigo-600 text-white font-black text-lg rounded-lg hover:bg-indigo-500 transition duration-150 shadow-xl shadow-indigo-600/50">Start Game</button>
+               <button id="auto-snake-btn" class="w-full py-3 mt-3 bg-red-700 text-white font-black text-lg rounded-lg hover:bg-red-600 transition duration-150 shadow-xl shadow-red-700/50">Auto Snake (Win)</button>
+           </div>
+       </div>
+
+
+       <!-- Instructions -->
+       <p class="text-xs text-center text-gray-400 mt-4">Control with Arrow Keys / WASD, or Swipe on Mobile.</p>
+   </div>
+
+
+   <!-- Firebase SDKs -->
+   <script type="module">
+       import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+       import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+       import { getFirestore, doc, setDoc, onSnapshot, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+
+       // IMPORTANT: Global variables provided by the environment
+       const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+       const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+       const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : undefined;
+
+
+       // Game Constants and State (Shared scope with Firebase)
+       const GRID_SIZE = 20;
+       const TILE_SIZE = 20; // 400px / 20 grid cells = 20px per cell
+       const EYE_COLOR = '#000000'; // Black eyes
+       const EYE_SIZE = 2; // Size of the eyes
+       const SPEED_INCREASE_INTERVAL = 5; // Increase speed every 5 points
+       const MIN_SPEED_DELAY = 30; // Hard cap on speed delay in ms
+
+
+       let db, auth;
+       let userId = null;
+       let isAuthReady = false;
+
+
+       let snake = [];
+       let food = {};
+       let dx = 0;
+       let dy = 0;
+       let score = 0;
+       let baseSpeed = 150; // The initial speed for the current difficulty
+       let speed = 150; // Dynamic speed, changes during the game
+       let gameMode = 'easy';
+       let highScores = { easy: 0, medium: 0, hard: 0, extreme: 0 };
+       let gameLoopId = null;
+       let gameRunning = false;
+       let nextDirection = { dx: 1, dy: 0 }; // Initial movement to the right
+       let autoMode = false; // New flag for cheat mode
+
+
+       // DOM Elements
+       const canvas = document.getElementById('gameCanvas');
+       const ctx = canvas.getContext('2d');
+       const scoreEl = document.getElementById('score');
+       const highScoreEl = document.getElementById('high-score');
+       const currentModeEl = document.getElementById('current-mode');
+       const difficultyBtns = document.querySelectorAll('.difficulty-btn');
+       const messageBox = document.getElementById('message-box');
+       const messageTitle = document.getElementById('message-title');
+       const messageContent = document.getElementById('message-content');
+       const startGameBtn = document.getElementById('start-game-btn');
+       const autoSnakeBtn = document.getElementById('auto-snake-btn'); // New button reference
+
+
+       // --- Utility Functions ---
+
+
+       /**
+        * Simple exponential backoff retry mechanism for API calls
+        * @param {Function} fn - The async function to execute
+        * @param {number} maxRetries - Maximum number of retries
+        */
+       async function withRetry(fn, maxRetries = 3) {
+           for (let i = 0; i < maxRetries; i++) {
+               try {
+                   return await fn();
+               } catch (error) {
+                   if (i === maxRetries - 1) throw error;
+                   // Wait 2^i * 1000 milliseconds
+                   const delay = Math.pow(2, i) * 1000;
+                   await new Promise(resolve => setTimeout(resolve, delay));
+               }
+           }
+       }
+
+
+       // --- Firebase Functions ---
+
+
+       /**
+        * Gets the Firestore Document reference for the public high scores.
+        */
+       function getHighScoreDocRef() {
+           if (!db || !userId) return null;
+           // Public data path: /artifacts/{appId}/public/data/snake_highscores/high_score_data
+           const collectionPath = `artifacts/${appId}/public/data/snake_highscores`;
+           return doc(db, collectionPath, 'high_score_data');
+       }
+
+
+       /**
+        * Sets up the real-time listener for public high scores.
+        */
+       function setupHighScoreListener() {
+           const docRef = getHighScoreDocRef();
+           if (!docRef) return;
+
+
+           onSnapshot(docRef, (docSnap) => {
+               if (docSnap.exists()) {
+                   const data = docSnap.data();
+                   highScores = {
+                       easy: data.easy || 0,
+                       medium: data.medium || 0,
+                       hard: data.hard || 0,
+                       extreme: data.extreme || 0,
+                   };
+               } else {
+                   // Initialize the document if it doesn't exist
+                   console.log("High score document does not exist, initializing...");
+                   updateHighScore(gameMode, 0, true);
+               }
+               updateHighScoreDisplay();
+           }, (error) => {
+               console.error("Error setting up high score listener:", error);
+           });
+       }
+
+
+       /**
+        * Updates the high score in Firestore if the new score is higher.
+        * @param {string} mode - The current difficulty mode.
+        * @param {number} newScore - The score to check against the high score.
+        * @param {boolean} forceWrite - Whether to write the document even if the score is not higher (used for initialization).
+        */
+       async function updateHighScore(mode, newScore, forceWrite = false) {
+           if (!isAuthReady || !db || !userId) {
+               console.warn("Firestore not ready or unauthorized to update score.");
+               return;
+           }
+
+
+           const docRef = getHighScoreDocRef();
+           if (!docRef) return;
+
+
+           if (forceWrite || newScore > highScores[mode]) {
+               const updatedScores = {
+                   ...highScores,
+                   [mode]: newScore,
+                   lastUpdatedBy: userId,
+                   timestamp: new Date().toISOString()
+               };
+
+
+               try {
+                   await withRetry(() => setDoc(docRef, updatedScores, { merge: true }));
+                   console.log(`High score for ${mode} updated to ${newScore}.`);
+                   highScores[mode] = newScore; // Update local state immediately
+                   updateHighScoreDisplay();
+               } catch (error) {
+                   console.error("Failed to update high score:", error);
+               }
+           }
+       }
+
+
+       // --- Game Logic Functions ---
+
+
+       function updateHighScoreDisplay() {
+           highScoreEl.textContent = highScores[gameMode];
+       }
+
+
+       /**
+        * Initializes the snake, food, score, and game state. Called on load and after 'Continue'.
+        */
+       function initGame() {
+           if (gameLoopId) clearTimeout(gameLoopId);
+           gameRunning = false;
+           autoMode = false; // Reset auto mode
+           snake = [{ x: 10, y: 10 }]; // Start at the center
+           food = {};
+           dx = 0; // Ensure snake is stopped at init
+           dy = 0; // Ensure snake is stopped at init
+           nextDirection = { dx: 1, dy: 0 }; // Set default start direction (Right)
+           score = 0;
+           scoreEl.textContent = score;
+
+
+           // Set the initially selected mode's speed and text
+           const selectedBtn = document.querySelector('.difficulty-btn.bg-indigo-600') || document.querySelector('.difficulty-btn[data-mode="easy"]');
+           if (selectedBtn) {
+               baseSpeed = parseInt(selectedBtn.dataset.speed);
+               gameMode = selectedBtn.dataset.mode;
+           } else {
+               // Default to easy mode if no button is selected
+               baseSpeed = 150;
+               gameMode = 'easy';
+           }
+           speed = baseSpeed; // Reset dynamic speed to base speed
+
+
+           currentModeEl.textContent = gameMode;
+           updateHighScoreDisplay();
+           placeFood();
+           drawGame();
+
+
+           // Set message box for starting
+           messageTitle.textContent = "Ready to Play?";
+           messageContent.textContent = `Current Mode: ${gameMode.toUpperCase()} (Base Speed: ${Math.round(1000 / baseSpeed)} tiles/sec)`;
+           startGameBtn.textContent = "Start Game";
+           startGameBtn.classList.remove('js-continue-btn'); // Ensure it's not in 'continue' state
+           autoSnakeBtn.style.display = 'block'; // Show cheat button on start screen
+
+
+           messageBox.classList.remove('hidden');
+           messageBox.classList.add('flex');
+       }
+
+
+       /**
+        * Places the food in a random location not occupied by the snake.
+        */
+       function placeFood() {
+           let newFood;
+           do {
+               newFood = {
+                   x: Math.floor(Math.random() * GRID_SIZE),
+                   y: Math.floor(Math.random() * GRID_SIZE)
+               };
+           } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
+           food = newFood;
+       }
+
+
+       /**
+        * Draws the game state on the canvas.
+        */
+       function drawGame() {
+           // Clear the canvas (Black background)
+           ctx.fillStyle = '#000000';
+           ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+
+           // Draw food (Apple)
+           ctx.fillStyle = '#ef4444'; // Red-500
+           ctx.shadowColor = 'rgba(239, 68, 68, 0.7)';
+           ctx.shadowBlur = 15;
+           ctx.beginPath();
+           ctx.arc(food.x * TILE_SIZE + TILE_SIZE / 2, food.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE * 0.4, 0, Math.PI * 2);
+           ctx.fill();
+           ctx.shadowBlur = 0;
+
+
+           // Draw snake
+           const borderSize = 1;
+           snake.forEach((segment, index) => {
+               const x = segment.x * TILE_SIZE;
+               const y = segment.y * TILE_SIZE;
+
+
+               if (index === 0) {
+                   // Head
+                   ctx.fillStyle = autoMode ? '#fcd34d' : '#34d399'; // Yellow for cheat, Emerald for manual
+                   ctx.shadowColor = autoMode ? 'rgba(252, 211, 77, 0.9)' : 'rgba(52, 211, 153, 0.9)';
+                   ctx.shadowBlur = 10;
+               } else {
+                   // Body
+                   // Use a slightly darker color for older segments for visual depth
+                   const colorIntensity = Math.max(0.4, 1 - (index / snake.length) * 0.3);
+                   // Use Indigo/Blue gradient for cheat mode
+                   const r = Math.floor((autoMode ? 99 : 16) * colorIntensity);
+                   const g = Math.floor((autoMode ? 102 : 185) * colorIntensity);
+                   const b = Math.floor((autoMode ? 241 : 129) * colorIntensity);
+                   ctx.fillStyle = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+                   ctx.shadowBlur = 0;
+               }
+
+
+               // Draw segment body
+               ctx.fillRect(x + borderSize, y + borderSize, TILE_SIZE - (borderSize * 2), TILE_SIZE - (borderSize * 2));
+
+
+               // Draw segment border
+               ctx.strokeStyle = '#047857'; // Emerald-700
+               ctx.lineWidth = borderSize;
+               ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+
+
+
+
+               // Draw eyes on the head (first segment)
+               if (index === 0) {
+                   ctx.fillStyle = EYE_COLOR;
+                   const center = TILE_SIZE / 2;
+                   const offset = TILE_SIZE / 4;
+                   const eyeShift = TILE_SIZE / 8; // Adjust eye position slightly
+
+
+                   // Determine the current facing direction for eyes (use nextDirection for a slightly snappier look)
+                   const currentDx = dx || nextDirection.dx;
+                   const currentDy = dy || nextDirection.dy;
+
+
+                   if (currentDx === 1) { // Moving Right
+                       ctx.fillRect(x + center - eyeShift, y + offset, EYE_SIZE, EYE_SIZE);
+                       ctx.fillRect(x + center - eyeShift, y + TILE_SIZE - offset - EYE_SIZE, EYE_SIZE, EYE_SIZE);
+                   } else if (currentDx === -1) { // Moving Left
+                       ctx.fillRect(x + center + eyeShift - EYE_SIZE, y + offset, EYE_SIZE, EYE_SIZE);
+                       ctx.fillRect(x + center + eyeShift - EYE_SIZE, y + TILE_SIZE - offset - EYE_SIZE, EYE_SIZE, EYE_SIZE);
+                   } else if (currentDy === 1) { // Moving Down
+                       ctx.fillRect(x + offset, y + center - eyeShift, EYE_SIZE, EYE_SIZE);
+                       ctx.fillRect(x + TILE_SIZE - offset - EYE_SIZE, y + center - eyeShift, EYE_SIZE, EYE_SIZE);
+                   } else if (currentDy === -1) { // Moving Up
+                       ctx.fillRect(x + offset, y + center + eyeShift - EYE_SIZE, EYE_SIZE, EYE_SIZE);
+                       ctx.fillRect(x + TILE_SIZE - offset - EYE_SIZE, y + center + eyeShift - EYE_SIZE, EYE_SIZE, EYE_SIZE);
+                   }
+               }
+           });
+       }
+
+
+       /**
+        * Main manual game loop.
+        */
+       function gameLoop() {
+           if (!gameRunning || autoMode) return;
+
+
+           // Update direction with pending input
+           dx = nextDirection.dx;
+           dy = nextDirection.dy;
+
+
+           const head = snake[0];
+           const newHead = { x: head.x + dx, y: head.y + dy };
+
+
+           // 1. Collision Detection (Wall and Self)
+           if (newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE || isCollision(newHead)) {
+               gameOver();
+               return;
+           }
+
+
+           snake.unshift(newHead);
+
+
+           // 2. Food Check
+           if (newHead.x === food.x && newHead.y === food.y) {
+               score += 1;
+               scoreEl.textContent = score;
+               placeFood();
+
+
+               // DYNAMIC SPEED: Increase speed (decrease delay) every SPEED_INCREASE_INTERVAL points
+               if (score > 0 && score % SPEED_INCREASE_INTERVAL === 0) {
+                   const speedIncrease = 5;
+                   const newSpeed = Math.max(MIN_SPEED_DELAY, speed - speedIncrease);
+                   if (newSpeed !== speed) {
+                       speed = newSpeed;
+                       console.log(`Speed increased! New delay: ${speed}ms`);
+                   }
+               }
+           } else {
+               snake.pop(); // Remove the tail if no food was eaten
+           }
+
+
+           // 3. Draw and Schedule Next Loop
+           drawGame();
+           gameLoopId = setTimeout(gameLoop, speed);
+       }
+      
+       /**
+        * Cheat mode game loop. Snake moves directly towards the food.
+        */
+       function autoGameLoop() {
+           if (!gameRunning || !autoMode) return;
+          
+           // 1. Determine direction towards food (simple greedy pathfinding)
+           const head = snake[0];
+           let tempDx = 0;
+           let tempDy = 0;
+           const diffX = food.x - head.x;
+           const diffY = food.y - head.y;
+
+
+           // Prioritize horizontal or vertical move based on distance
+           if (Math.abs(diffX) > Math.abs(diffY)) {
+               tempDx = diffX > 0 ? 1 : -1;
+           } else if (Math.abs(diffY) > 0) {
+               tempDy = diffY > 0 ? 1 : -1;
+           }
+
+
+           // If only one direction was set, try to set the other one as well for diagonal moves
+           if (tempDx === 0 && diffX !== 0) tempDx = diffX > 0 ? 1 : -1;
+           if (tempDy === 0 && diffY !== 0) tempDy = diffY > 0 ? 1 : -1;
+
+
+           // Simple Reversal Check: If the calculated move is an immediate reversal, try the other axis.
+           if (dx !== 0 && tempDx === -dx) {
+               tempDx = 0; // Cancel horizontal reversal
+               if (diffY !== 0) tempDy = diffY > 0 ? 1 : -1; // Try vertical instead
+           }
+           if (dy !== 0 && tempDy === -dy) {
+               tempDy = 0; // Cancel vertical reversal
+               if (diffX !== 0) tempDx = diffX > 0 ? 1 : -1; // Try horizontal instead
+           }
+
+
+           // Use the determined direction
+           dx = tempDx;
+           dy = tempDy;
+           nextDirection = { dx, dy };
+
+
+           // 2. Movement and Collision Check (same as manual game loop)
+           const newHead = { x: head.x + dx, y: head.y + dy };
+
+
+           // Wall/Self Collision check
+           if (newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE || isCollision(newHead)) {
+               // The auto snake can theoretically still lose if it paints itself into a corner, but it's rare.
+               gameOver();
+               return;
+           }
+
+
+           snake.unshift(newHead);
+
+
+           // 3. Food Check
+           if (newHead.x === food.x && newHead.y === food.y) {
+               score += 1;
+               scoreEl.textContent = score;
+               placeFood();
+
+
+               // Dynamic speed applies to cheat mode too!
+               if (score > 0 && score % SPEED_INCREASE_INTERVAL === 0) {
+                   const speedIncrease = 5;
+                   speed = Math.max(MIN_SPEED_DELAY, speed - speedIncrease);
+               }
+           } else {
+               snake.pop();
+           }
+
+
+           // 4. Draw and Schedule Next Loop
+           drawGame();
+           gameLoopId = setTimeout(autoGameLoop, speed);
+       }
+
+
+       /**
+        * Checks for collision with the snake's own body.
+        * @param {Object} head - The new head position.
+        */
+       function isCollision(head) {
+           // Check if the new head position overlaps with any body segment (excluding the current head)
+           for (let i = 1; i < snake.length; i++) {
+               if (head.x === snake[i].x && head.y === snake[i].y) {
+                   return true;
+               }
+           }
+           return false;
+       }
+
+
+       /**
+        * Handles game over state.
+        */
+       function gameOver() {
+           gameRunning = false;
+           clearTimeout(gameLoopId);
+
+
+           const isNewHighScore = score > highScores[gameMode];
+           updateHighScore(gameMode, score); // Check and update high score
+
+
+           messageTitle.textContent = autoMode ? "Cheat Complete! 👑" : (isNewHighScore ? "⭐ New High Score! ⭐" : "Game Over!");
+           messageContent.innerHTML = `You scored: <span class="font-extrabold text-pink-400 text-xl">${score}</span> points.<br>Mode: ${gameMode.toUpperCase()}.`;
+           startGameBtn.textContent = "Continue"; // Change action to 'Continue'
+           startGameBtn.classList.add('js-continue-btn'); // Flag the button's action
+           autoSnakeBtn.style.display = 'none'; // Hide cheat button on game over screen
+
+
+           messageBox.classList.remove('hidden');
+           messageBox.classList.add('flex');
+       }
+
+
+       /**
+        * Starts the game from the initial state (Manual Play).
+        */
+       function startGame() {
+           if (gameRunning) return;
+          
+           // Re-initialize the snake and set current movement direction based on pre-game input
+           snake = [{ x: 10, y: 10 }];
+           dx = nextDirection.dx;
+           dy = nextDirection.dy;
+           score = 0;
+           scoreEl.textContent = score;
+           placeFood();
+
+
+           gameRunning = true;
+           autoMode = false;
+           messageBox.classList.remove('flex');
+           messageBox.classList.add('hidden');
+           startGameBtn.classList.remove('js-continue-btn'); // Remove flag once game starts
+           gameLoop(); // Start manual loop
+       }
+
+
+       /**
+        * Starts the game in Auto Cheat Mode.
+        */
+       function startAutoSnake() {
+           if (gameRunning) return;
+          
+           // Re-initialize the snake
+           snake = [{ x: 10, y: 10 }];
+           dx = nextDirection.dx;
+           dy = nextDirection.dy;
+           score = 0;
+           scoreEl.textContent = score;
+           placeFood();
+
+
+           gameRunning = true;
+           autoMode = true; // Enable cheat mode flag
+           messageBox.classList.remove('flex');
+           messageBox.classList.add('hidden');
+           startGameBtn.classList.remove('js-continue-btn');
+           autoGameLoop(); // Start auto cheat loop
+       }
+
+
+       // --- Event Handlers ---
+
+
+       function handleKeyInput(event) {
+           if (autoMode) return; // Ignore manual input in cheat mode
+
+
+           const keyPressed = event.key;
+           let tempDx = 0;
+           let tempDy = 0;
+
+
+           // Handle Start/Continue via Enter key (modal control)
+           if (keyPressed === 'Enter') {
+               if (!gameRunning) {
+                   if (startGameBtn.classList.contains('js-continue-btn')) {
+                       initGame();
+                   } else {
+                       startGame();
+                   }
+               }
+               event.preventDefault(); // Prevent accidental scroll
+               return;
+           }
+          
+           // Process directional input (allowed even when not running to set the initial direction)
+           switch (keyPressed) {
+               case 'ArrowUp': case 'w': case 'W': tempDx = 0; tempDy = -1; break;
+               case 'ArrowDown': case 's': case 'S': tempDx = 0; tempDy = 1; break;
+               case 'ArrowLeft': case 'a': case 'A': tempDx = -1; tempDy = 0; break;
+               case 'ArrowRight': case 'd': case 'D': tempDx = 1; tempDy = 0; break;
+               default: return; // Ignore other keys
+           }
+
+
+           // Prevent immediate reversal. If the game is running, check against current direction (dx/dy).
+           // If the game is paused (dx/dy are 0), check against the pending direction (nextDirection).
+           const currentDx = gameRunning ? dx : nextDirection.dx;
+           const currentDy = gameRunning ? dy : nextDirection.dy;
+
+
+           // Don't allow reversal if currently moving
+           if (currentDx !== 0 && tempDx === -currentDx) return;
+           if (currentDy !== 0 && tempDy === -currentDy) return;
+
+
+           // Only update if a valid directional key was pressed and it's not a reversal
+           nextDirection = { dx: tempDx, dy: tempDy };
+           event.preventDefault(); // Prevent accidental scroll/navigation
+       }
+
+
+       /**
+        * Attaches event listeners for controls.
+        */
+       function setupEventListeners() {
+           document.addEventListener('keydown', handleKeyInput);
+
+
+           // Difficulty buttons
+           difficultyBtns.forEach(btn => {
+               btn.addEventListener('click', () => {
+                   if (gameRunning) return; // Cannot change mode mid-game
+
+
+                   // Reset button styles
+                   difficultyBtns.forEach(b => {
+                       b.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+                       // Restore original colors
+                       const mode = b.dataset.mode;
+                       if (mode === 'easy') b.classList.add('bg-green-500');
+                       else if (mode === 'medium') b.classList.add('bg-blue-500');
+                       else if (mode === 'hard') b.classList.add('bg-orange-500');
+                       else if (mode === 'extreme') b.classList.add('bg-red-600');
+                   });
+
+
+                   // Set new selection style
+                   btn.classList.remove('bg-green-500', 'bg-blue-500', 'bg-orange-500', 'bg-red-600');
+                   btn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+
+
+                   // Update game settings and reset state
+                   baseSpeed = parseInt(btn.dataset.speed);
+                   gameMode = btn.dataset.mode;
+                   initGame();
+               });
+           });
+
+
+           // Start/Continue Game Button handler (Manual)
+           startGameBtn.addEventListener('click', () => {
+               if (startGameBtn.classList.contains('js-continue-btn')) {
+                   // If the button is in 'continue' state, reset the UI to allow mode selection
+                   initGame();
+               } else {
+                   // Otherwise, start the game
+                   startGame();
+               }
+           });
+
+
+           // Auto Snake Button handler (Cheat)
+           autoSnakeBtn.addEventListener('click', () => {
+               if (!gameRunning) {
+                   startAutoSnake();
+               }
+           });
+
+
+
+
+           // Initialize default selected style
+           const defaultBtn = document.querySelector('.difficulty-btn[data-mode="easy"]');
+           if(defaultBtn) {
+                defaultBtn.classList.remove('bg-green-500');
+                defaultBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+           }
+
+
+
+
+           // Mobile Touch/Swipe Control
+           let touchstartX = 0;
+           let touchstartY = 0;
+
+
+           canvas.addEventListener('touchstart', (e) => {
+               if (autoMode) return;
+               touchstartX = e.changedTouches[0].screenX;
+               touchstartY = e.changedTouches[0].screenY;
+               e.preventDefault(); // Prevent scrolling on touch
+           }, false);
+
+
+           canvas.addEventListener('touchend', (e) => {
+               if (autoMode) return;
+               const touchendX = e.changedTouches[0].screenX;
+               const touchendY = e.changedTouches[0].screenY;
+               handleGesture(touchstartX, touchstartY, touchendX, touchendY);
+               e.preventDefault();
+           }, false);
+       }
+
+
+       /**
+        * Converts a touch gesture into a snake direction.
+        */
+       function handleGesture(startX, startY, endX, endY) {
+           const diffX = endX - startX;
+           const diffY = endY - startY;
+           const threshold = 20;
+
+
+           if (Math.abs(diffX) < threshold && Math.abs(diffY) < threshold) {
+               // Not a significant swipe, treat as a tap to start if game is paused
+               if (!gameRunning && !startGameBtn.classList.contains('js-continue-btn')) startGame();
+               return;
+           }
+
+
+           let tempDx = 0;
+           let tempDy = 0;
+
+
+           // Determine if movement is mostly horizontal or vertical
+           if (Math.abs(diffX) > Math.abs(diffY)) {
+               // Horizontal swipe
+               if (diffX > 0) { tempDx = 1; tempDy = 0; } // Right
+               else { tempDx = -1; tempDy = 0; } // Left
+           } else {
+               // Vertical swipe
+               if (diffY > 0) { tempDx = 0; tempDy = 1; } // Down
+               else { tempDx = 0; tempDy = -1; } // Up
+           }
+
+
+           // Don't allow reversal if currently moving
+           const currentDx = gameRunning ? dx : nextDirection.dx;
+           const currentDy = gameRunning ? dy : nextDirection.dy;
+
+
+           if (currentDx !== 0 && tempDx === -currentDx) return;
+           if (currentDy !== 0 && tempDy === -currentDy) return;
+
+
+           // Only update if a valid directional movement occurred
+           nextDirection = { dx: tempDx, dy: tempDy };
+       }
+
+
+
+
+       // --- Initialization ---
+
+
+       async function initApp() {
+           try {
+               // Initialize Firebase
+               const app = initializeApp(firebaseConfig);
+               db = getFirestore(app);
+               auth = getAuth(app);
+               setLogLevel('error'); // Set to error to reduce console noise
+
+
+               // Authentication
+               onAuthStateChanged(auth, async (user) => {
+                   if (user) {
+                       userId = user.uid;
+                       isAuthReady = true;
+                       setupHighScoreListener();
+                   } else {
+                        // Sign in anonymously if no token or token is invalid
+                       if (initialAuthToken) {
+                           try {
+                               await signInWithCustomToken(auth, initialAuthToken);
+                           } catch(e) {
+                               await signInAnonymously(auth);
+                           }
+                       } else {
+                           await signInAnonymously(auth);
+                       }
+                       // Re-trigger onAuthStateChanged with the newly signed in user
+                       return;
+                   }
+
+
+                   // Once everything is initialized, setup game and listeners
+                   initGame();
+                   setupEventListeners();
+               });
+
+
+           } catch (error) {
+               console.error("Firebase Initialization Error:", error);
+               // Fallback to non-persisting mode if Firebase fails
+               isAuthReady = true;
+               highScoreEl.textContent = "Error";
+               initGame();
+               setupEventListeners();
+           }
+       }
+
+
+       // Start the application initialization on load
+       window.onload = initApp;
+
+
+   
+   </script>
+</div>
+
+<script>
+    // Get the element by its ID
+    const footerElement = document.getElementById('nexus-footer');
+
+    // Wait for 20 seconds (20000 milliseconds)
+    setTimeout(() => {
+        // Change the font size (e.g., to 8px)
+        footerElement.style.fontSize = '8px';
+        
+        // Make the background transparent
+        footerElement.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        
+        // Optional: Gradually reduce opacity to fade it out slightly
+        footerElement.style.opacity = '0.5'; 
+    }, 20000); 
+</script>
+
+</body>
+</html>
