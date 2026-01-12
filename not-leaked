@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Access Restricted</title>
+   <style>
+       /* --- Modern Variables --- */
+       :root {
+           --accent: #a4c8f2; /* Soft blue */
+           --bg-dark: #10121a; /* Deep dark slate */
+           --glass-bg: rgba(255, 255, 255, 0.04); /* Less opaque white for depth */
+           --glass-border: rgba(255, 255, 255, 0.15); /* Slightly clearer border */
+           --text-main: #e8eaf2;
+           --text-muted: #8c909c;
+           --blur-strength: 40px; /* Enhanced Blur */
+       }
+
+
+       * {
+           box-sizing: border-box;
+           margin: 0;
+           padding: 0;
+       }
+
+
+       body {
+           background-color: var(--bg-dark);
+           color: var(--text-main);
+           font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+           height: 100vh;
+           display: flex;
+           justify-content: center;
+           align-items: center;
+           overflow: hidden;
+           perspective: 1200px; /* Increased Perspective for more depth */
+           background-image: radial-gradient(circle at center, rgba(30, 35, 50, 0.8) 0%, rgba(16, 18, 26, 1) 70%);
+       }
+
+
+       /* Animated Starfield Canvas (Subtler) */
+       #starfield {
+           position: absolute;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           z-index: -1;
+           opacity: 0.3;
+       }
+
+
+       /* 3D Tilt Container (Glassmorphism Core) */
+       .tilt-card {
+           position: relative;
+           width: 90%;
+           max-width: 550px;
+           padding: 3rem 2.5rem;
+           background: var(--glass-bg);
+           border: 1px solid var(--glass-border);
+           border-radius: 30px; /* More rounded corners */
+           backdrop-filter: blur(var(--blur-strength));
+           -webkit-backdrop-filter: blur(var(--blur-strength));
+           box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.8), /* Deeper shadow */
+                       0 0 50px rgba(164, 200, 242, 0.1);
+           transform-style: preserve-3d;
+           transform: rotateX(0deg) rotateY(0deg);
+           transition: transform 0.1s ease-out;
+           text-align: center;
+           will-change: transform; /* Hint for browser performance */
+       }
+
+
+       /* Geometric Icon */
+       .icon-container {
+           width: 80px;
+           height: 80px;
+           margin: 0 auto 2rem;
+           display: flex;
+           justify-content: center;
+           align-items: center;
+           transform: translateZ(50px); /* Depth effect */
+       }
+
+
+       .region-icon {
+           font-size: 4rem;
+           color: var(--accent);
+           text-shadow: 0 0 15px rgba(164, 200, 242, 0.6);
+           animation: float-icon 5s ease-in-out infinite alternate;
+       }
+
+
+       /* Typography */
+       h1 {
+           font-size: 5rem;
+           font-weight: 900;
+           line-height: 1;
+           margin-bottom: 0.5rem;
+           /* Subtler gradient for modern look */
+           background: linear-gradient(135deg, #ffffff 20%, var(--accent) 100%);
+           -webkit-background-clip: text;
+           -webkit-text-fill-color: transparent;
+           transform: translateZ(30px);
+           letter-spacing: -3px;
+           transition: all 0.3s;
+       }
+
+
+       h2 {
+           font-size: 1.5rem;
+           font-weight: 500;
+           color: var(--text-main);
+           letter-spacing: 0.5px;
+           margin-bottom: 1.5rem;
+           transform: translateZ(25px);
+       }
+
+
+       p {
+           color: var(--text-muted);
+           font-size: 1.05rem;
+           line-height: 1.7;
+           margin-bottom: 3rem;
+           transform: translateZ(20px);
+           font-weight: 300;
+       }
+      
+       em {
+           font-style: normal;
+           font-weight: 500;
+           color: var(--accent);
+       }
+
+
+       /* Interactive Button (Clean Modern) */
+       .btn-home {
+           position: relative;
+           display: inline-block;
+           padding: 14px 40px;
+           color: var(--bg-dark);
+           background: var(--accent);
+           border: none;
+           border-radius: 12px;
+           font-weight: 700;
+           font-size: 1.1rem;
+           cursor: pointer;
+           text-decoration: none;
+           transform: translateZ(40px);
+           transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+           overflow: hidden;
+           box-shadow: 0 10px 30px -10px rgba(164, 200, 242, 0.4);
+       }
+
+
+       .btn-home:hover {
+           transform: translateZ(45px) translateY(-2px) scale(1.02);
+           box-shadow: 0 15px 40px -10px rgba(164, 200, 242, 0.6);
+           background: linear-gradient(90deg, #ffffff, var(--accent));
+       }
+      
+       /* Animations */
+       @keyframes float-icon {
+           0% { transform: translateZ(50px) translateY(0px); }
+           100% { transform: translateZ(50px) translateY(-10px); }
+       }
+
+
+       /* Mobile Responsive */
+       @media (max-width: 600px) {
+           h1 { font-size: 4rem; }
+           h2 { font-size: 1.25rem; }
+           .tilt-card { margin: 1rem; padding: 2.5rem 1.5rem; }
+       }
+   </style>
+</head>
+<body>
+
+
+   <canvas id="starfield"></canvas>
+
+
+   <div class="tilt-card" id="card">
+       <div class="icon-container">
+            <span class="region-icon">🌐</span>
+       </div>
+
+
+       <h1>Error 404</h1>
+       <h2>Access Restricted</h2>
+      
+       <p>
+           This content is not available in your Country or Region.
+           <br>
+           <em>Sorry, come back later.</em>
+       </p>
+
+
+       <a href="https://nexusx.w3spaces.com/" class="btn-home">Go Home</a>
+   </div>
+
+
+   <script>
+       // --- 3D TILT EFFECT LOGIC (Parallax) ---
+       const card = document.getElementById('card');
+       const container = document.body;
+
+
+       container.addEventListener('mousemove', (e) => {
+           // Calculate tilt angle based on mouse position
+           const xAxis = (window.innerWidth / 2 - e.pageX) / 40; // Smaller divisor for more subtle tilt
+           const yAxis = (window.innerHeight / 2 - e.pageY) / 40;
+           card.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
+       });
+
+
+       container.addEventListener('mouseenter', (e) => {
+           card.style.transition = 'none';
+       });
+
+
+       container.addEventListener('mouseleave', (e) => {
+           card.style.transition = 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; // Springy transition
+           card.style.transform = `rotateY(0deg) rotateX(0deg)`;
+       });
+
+
+       // --- PARTICLE BACKGROUND LOGIC (Web Tech) ---
+       const canvas = document.getElementById('starfield');
+       const ctx = canvas.getContext('2d');
+       let width, height;
+       let particles = [];
+
+
+       function resize() {
+           width = canvas.width = window.innerWidth;
+           height = canvas.height = window.innerHeight;
+       }
+
+
+       class Particle {
+           constructor() {
+               this.x = Math.random() * width;
+               this.y = Math.random() * height;
+               this.size = Math.random() * 1.5; // Smaller particles
+               this.speedX = Math.random() * 0.1 - 0.05; // Slower movement
+               this.speedY = Math.random() * 0.1 - 0.05;
+               this.color = '#e8eaf2'; // White/subtle color
+           }
+           update() {
+               this.x += this.speedX;
+               this.y += this.speedY;
+               if (this.x > width) this.x = 0;
+               if (this.x < 0) this.x = width;
+               if (this.y > height) this.y = 0;
+               if (this.y < 0) this.y = height;
+           }
+           draw() {
+               ctx.fillStyle = this.color;
+               ctx.globalAlpha = this.size / 2; // Make them fade
+               ctx.beginPath();
+               ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+               ctx.fill();
+               ctx.globalAlpha = 1;
+           }
+       }
+
+
+       function initParticles() {
+           for (let i = 0; i < 70; i++) { // Fewer particles for cleaner look
+               particles.push(new Particle());
+           }
+       }
+
+
+       function animateParticles() {
+           ctx.clearRect(0, 0, width, height);
+           particles.forEach(p => {
+               p.update();
+               p.draw();
+           });
+           requestAnimationFrame(animateParticles);
+       }
+
+
+       window.addEventListener('resize', resize);
+       resize();
+       initParticles();
+       animateParticles();
+   </script>
+
+<script>
+    // Get the element by its ID
+    const footerElement = document.getElementById('nexus-footer');
+
+    // Wait for 20 seconds (20000 milliseconds)
+    setTimeout(() => {
+        // Change the font size (e.g., to 8px)
+        footerElement.style.fontSize = '8px';
+        
+        // Make the background transparent
+        footerElement.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        
+        // Optional: Gradually reduce opacity to fade it out slightly
+        footerElement.style.opacity = '0.5'; 
+    }, 20000); 
+</script>
+
+</body>
+</html>
