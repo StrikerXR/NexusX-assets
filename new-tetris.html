@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon 3D Tetris - Reflective Ultra</title>
+    <style>
+        :root {
+            --bg-color: #0f0c29;
+            --bg-gradient: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-color: #ffffff;
+            --accent: #00f2ff;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: var(--bg-gradient);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+        }
+
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        .game-container {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            gap: 20px;
+            padding: 40px;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.05);
+            width: 320px;
+            height: 640px;
+            background: rgba(0,0,0,0.3);
+        }
+
+        #game-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .ui-panel {
+            display: flex;
+            flex-direction: column;
+            width: 200px;
+            gap: 20px;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.7;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+
+        .controls-info {
+            font-size: 0.8rem;
+            opacity: 0.5;
+            line-height: 1.6;
+            margin-top: auto;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            border-radius: 12px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .overlay h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(to bottom, #fff, #aaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #settings-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 320px;
+            background: #1a1a2e;
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            z-index: 100;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            display: none;
+        }
+
+        #settings-modal.open { display: block; }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.2rem;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+        .close-btn:hover { opacity: 1; }
+
+        .quality-selector {
+            display: flex;
+            background: #111;
+            border-radius: 8px;
+            padding: 2px;
+        }
+        .q-opt {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border-radius: 6px;
+            opacity: 0.6;
+            transition: 0.2s;
+        }
+        .q-opt.active {
+            background: var(--accent);
+            color: #000;
+            opacity: 1;
+            font-weight: bold;
+        }
+    </style>
+    
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="game-container">
+        <div class="canvas-wrapper">
+            <canvas id="game-canvas"></canvas>
+            
+            <div id="main-overlay" class="overlay active">
+                <h1 id="overlay-title">TETRIS 3D</h1>
+                <p id="final-score" style="display:none; margin-bottom: 20px; font-size: 1.2rem;">Score: 0</p>
+                <button class="btn" onclick="window.startGameUI()">Play Game</button>
+            </div>
+            
+            <div id="loading-overlay" class="overlay active" style="background: #000; z-index: 30;">
+                <h2 style="color:var(--accent)">Loading 3D Engine...</h2>
+            </div>
+        </div>
+
+        <div class="ui-panel">
+            <div class="stat-box">
+                <div class="stat-label">Score</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Level</div>
+                <div class="stat-value" id="level">1</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Lines</div>
+                <div class="stat-value" id="lines">0</div>
+            </div>
+            
+            <button class="btn" onclick="window.togglePauseUI()" id="pause-btn">Pause</button>
+            <button class="btn" style="background: rgba(255,255,255,0.05);" onclick="openSettings()">Settings</button>
+
+            <div class="controls-info">
+                ← → : Move<br>
+                ↑ : Rotate<br>
+                ↓ : Soft Drop<br>
+                Space : Hard Drop
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal">
+        <button class="close-btn" onclick="closeSettings()">×</button>
+        <h2 style="margin-top:0; margin-bottom: 20px;">Settings</h2>
+        
+        <div class="setting-row">
+            <span>Graphics Preset</span>
+            <div class="quality-selector">
+                <div class="q-opt" id="q-off" onclick="window.setQuality('off')">OFF</div>
+                <div class="q-opt" id="q-low" onclick="window.setQuality('low')">LOW</div>
+                <div class="q-opt active" id="q-ultra" onclick="window.setQuality('ultra')">ULTRA</div>
+            </div>
+        </div>
+<div class="setting-row">
+    <span>Copyright NexusOS Launcher <span id="copyright-year"></span>. Version 7.0</span>
+</div>
+    
+        
+        <div class="setting-row">
+            <span style="font-size:0.8rem; opacity:0.5;">
+                <span id="quality-desc">Reflective Physical Materials + Bloom</span>
+            </span>
+        </div>
+    </div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+    const COLS = 10;
+    const ROWS = 20;
+    
+    let board = [];
+    let score = 0;
+    let lines = 0;
+    let level = 1;
+    let gameOver = false;
+    let isPaused = false;
+    let dropCounter = 0;
+    let lastTime = 0;
+    let dropInterval = 1000;
+    let piece = null;
+    let animationId = null;
+
+    const SHAPES = [[], [[1, 1, 1, 1]], [[2, 0, 0], [2, 2, 2]], [[0, 0, 3], [3, 3, 3]], [[4, 4], [4, 4]], [[0, 5, 5], [5, 5, 0]], [[0, 6, 0], [6, 6, 6]], [[7, 7, 0], [0, 7, 7]]];
+    const COLORS_HEX = [0x000000, 0x00f2ff, 0x0051ff, 0xff9d00, 0xffea00, 0x00ff62, 0xbc13fe, 0xff0055];
+
+    const canvas = document.querySelector('#game-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setSize(320, 640);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, 320/640, 0.1, 100);
+    camera.position.set(4.5, 10, 24);
+    camera.lookAt(4.5, 9, 0);
+
+    const boardGroup = new THREE.Group();
+    const pieceGroup = new THREE.Group();
+    scene.add(boardGroup, pieceGroup);
+
+    // --- LIGHTING ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight.position.set(5, 20, 10);
+    dirLight.castShadow = true;
+    scene.add(ambientLight, dirLight);
+
+    // Reflection Setup
+    const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(256);
+    const cubeCamera = new THREE.CubeCamera(0.1, 100, cubeRenderTarget);
+    scene.add(cubeCamera);
+
+    // Post-processing
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(320, 640), 1.0, 0.4, 0.85);
+    composer.addPass(bloomPass);
+
+    let currentQuality = 'ultra';
+    const boxGeo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+    const roundGeo = new RoundedBoxGeometry(0.9, 0.9, 0.9, 4, 0.1);
+    const materials = {};
+
+    function getMaterial(colorHex) {
+        const key = `${currentQuality}_${colorHex}`;
+        if(materials[key]) return materials[key];
+
+        let mat;
+        if (currentQuality === 'off') {
+            mat = new THREE.MeshBasicMaterial({ color: colorHex });
+        } else if (currentQuality === 'low') {
+            mat = new THREE.MeshLambertMaterial({ color: colorHex });
+        } else {
+            // ULTRA: Reflective Physical Material
+            mat = new THREE.MeshPhysicalMaterial({ 
+                color: colorHex, 
+                metalness: 0.9, 
+                roughness: 0.1,
+                envMap: cubeRenderTarget.texture,
+                emissive: colorHex,
+                emissiveIntensity: 0.2,
+                reflectivity: 1.0,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1
+            });
+        }
+        materials[key] = mat;
+        return mat;
+    }
+
+    window.setQuality = function(level) {
+        currentQuality = level;
+        document.querySelectorAll('.q-opt').forEach(el => el.classList.remove('active'));
+        document.getElementById(`q-${level}`).classList.add('active');
+        const desc = document.getElementById('quality-desc');
+        
+        if (level === 'off') {
+            desc.innerText = "Basic colors, No Lights";
+            bloomPass.enabled = false;
+        } else if (level === 'low') {
+            desc.innerText = "Standard Lighting, No Bloom";
+            bloomPass.enabled = false;
+        } else {
+            desc.innerText = "Reflective Physical Materials + Bloom";
+            bloomPass.enabled = true;
+        }
+        rebuildBoardMeshes();
+        updatePieceMesh();
+    };
+
+    function createBlockMesh(colorId) {
+        const geo = currentQuality === 'ultra' ? roundGeo : boxGeo;
+        const mesh = new THREE.Mesh(geo, getMaterial(COLORS_HEX[colorId]));
+        if (currentQuality === 'ultra') { mesh.castShadow = true; mesh.receiveShadow = true; }
+        return mesh;
+    }
+
+    function resetGame() {
+        board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+        score = 0; lines = 0; level = 1; dropInterval = 1000;
+        gameOver = false; isPaused = false;
+        document.getElementById('score').innerText = 0;
+        document.getElementById('level').innerText = 1;
+        document.getElementById('lines').innerText = 0;
+        document.getElementById('main-overlay').classList.remove('active');
+        rebuildBoardMeshes();
+        spawnPiece();
+        lastTime = performance.now();
+        if (animationId) cancelAnimationFrame(animationId);
+        updateLoop();
+    }
+
+    function spawnPiece() {
+        const typeId = (Math.random() * 7 | 0) + 1;
+        piece = { matrix: SHAPES[typeId], pos: { x: (COLS / 2 | 0) - (Math.ceil(SHAPES[typeId][0].length / 2)), y: 0 }, type: typeId };
+        if (collide(board, piece)) {
+            gameOver = true;
+            document.getElementById('overlay-title').innerText = "GAME OVER";
+            document.getElementById('final-score').style.display = "block";
+            document.getElementById('final-score').innerText = "Score: " + score;
+            document.getElementById('main-overlay').classList.add('active');
+        }
+        updatePieceMesh();
+    }
+
+    function updatePieceMesh() {
+        while(pieceGroup.children.length > 0) pieceGroup.remove(pieceGroup.children[0]);
+        if(!piece) return;
+        piece.matrix.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value !== 0) {
+                    const mesh = createBlockMesh(piece.type);
+                    mesh.position.x = (piece.pos.x + x);
+                    mesh.position.y = (ROWS - 1) - (piece.pos.y + y); 
+                    pieceGroup.add(mesh);
+                }
+            });
+        });
+    }
+
+    function rebuildBoardMeshes() {
+        while(boardGroup.children.length > 0) boardGroup.remove(boardGroup.children[0]);
+        board.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value !== 0) {
+                    const mesh = createBlockMesh(value);
+                    mesh.position.x = x;
+                    mesh.position.y = (ROWS - 1) - y;
+                    boardGroup.add(mesh);
+                }
+            });
+        });
+    }
+
+    function collide(arena, player) {
+        const m = player.matrix; const o = player.pos;
+        for (let y = 0; y < m.length; ++y) {
+            for (let x = 0; x < m[y].length; ++x) {
+                if (m[y][x] !== 0 && (arena[y + o.y] && arena[y + o.y][x + o.x]) !== 0) return true;
+            }
+        }
+        return false;
+    }
+
+    function merge(arena, player) {
+        player.matrix.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value !== 0 && arena[y + player.pos.y]) arena[y + player.pos.y][x + player.pos.x] = player.type;
+            });
+        });
+        rebuildBoardMeshes();
+    }
+
+    function rotate(matrix, dir) {
+        for (let y = 0; y < matrix.length; ++y) {
+            for (let x = 0; x < y; ++x) [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+        }
+        if (dir > 0) matrix.forEach(row => row.reverse()); else matrix.reverse();
+    }
+
+    function playerRotate(dir) {
+        const pos = piece.pos.x; let offset = 1;
+        rotate(piece.matrix, dir);
+        while (collide(board, piece)) {
+            piece.pos.x += offset;
+            offset = -(offset + (offset > 0 ? 1 : -1));
+            if (offset > piece.matrix[0].length) { rotate(piece.matrix, -dir); piece.pos.x = pos; return; }
+        }
+        updatePieceMesh();
+    }
+
+    function arenaSweep() {
+        let rowCount = 0;
+        outer: for (let y = board.length - 1; y > 0; --y) {
+            for (let x = 0; x < board[y].length; ++x) { if (board[y][x] === 0) continue outer; }
+            board.unshift(board.splice(y, 1)[0].fill(0));
+            ++y; rowCount++;
+        }
+        if (rowCount > 0) {
+            score += [0, 100, 300, 500, 800][rowCount] * level;
+            lines += rowCount; level = Math.floor(lines / 10) + 1;
+            dropInterval = Math.max(100, 1000 - (level - 1) * 50);
+            document.getElementById('score').innerText = score;
+            document.getElementById('level').innerText = level;
+            document.getElementById('lines').innerText = lines;
+            rebuildBoardMeshes();
+        }
+    }
+
+    function updateLoop(time = 0) {
+        if (!isPaused && !gameOver) {
+            const deltaTime = time - lastTime;
+            lastTime = time;
+            dropCounter += deltaTime;
+            if (dropCounter > dropInterval) {
+                piece.pos.y++;
+                if (collide(board, piece)) { piece.pos.y--; merge(board, piece); arenaSweep(); spawnPiece(); }
+                dropCounter = 0;
+                updatePieceMesh();
+            }
+        }
+        
+        // Dynamic Reflection Update
+        if (currentQuality === 'ultra') {
+            pieceGroup.visible = false; boardGroup.visible = false;
+            cubeCamera.update(renderer, scene);
+            pieceGroup.visible = true; boardGroup.visible = true;
+            composer.render();
+        } else {
+            renderer.render(scene, camera);
+        }
+        animationId = requestAnimationFrame(updateLoop);
+    }
+
+    window.startGameUI = () => resetGame();
+    window.togglePauseUI = () => {
+        if (gameOver) return;
+        isPaused = !isPaused;
+        document.getElementById('pause-btn').innerText = isPaused ? "Resume" : "Pause";
+        if (!isPaused) lastTime = performance.now();
+    };
+
+    document.addEventListener('keydown', e => {
+        if (gameOver || document.getElementById('settings-modal').classList.contains('open') || isPaused) return;
+        if (e.keyCode === 37) { piece.pos.x--; if (collide(board, piece)) piece.pos.x++; updatePieceMesh(); }
+        if (e.keyCode === 39) { piece.pos.x++; if (collide(board, piece)) piece.pos.x--; updatePieceMesh(); }
+        if (e.keyCode === 40) { piece.pos.y++; if (collide(board, piece)) { piece.pos.y--; merge(board, piece); arenaSweep(); spawnPiece(); } updatePieceMesh(); }
+        if (e.keyCode === 38) playerRotate(1);
+        if (e.keyCode === 32) { while (!collide(board, piece)) piece.pos.y++; piece.pos.y--; merge(board, piece); arenaSweep(); spawnPiece(); updatePieceMesh(); }
+    });
+
+    document.getElementById('loading-overlay').style.display = 'none';
+</script>
+
+<script>
+    function openSettings() { document.getElementById('settings-modal').classList.add('open'); if(window.togglePauseUI && document.getElementById('pause-btn').innerText === "Pause") window.togglePauseUI(); }
+    function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+</script>
+<script>
+  document.getElementById("copyright-year").textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
