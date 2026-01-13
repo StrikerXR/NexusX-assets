@@ -596,7 +596,6 @@
                 body { background-color: var(--bg-oled); color: var(--nord-text-main); height: 100vh; width: 100vw; overflow: hidden; display: flex; align-items: center; justify-content: center; }
                 .ambient-glow { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(255, 59, 59, 0.15) 0%, transparent 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 0; pointer-events: none; }
                 
-                /* Adapted Shell to Fill Window */
                 .nexus-shell {
                     width: 100%; height: 100%;
                     background: var(--glass-surface);
@@ -607,7 +606,17 @@
                 .zone-left { flex: 1.2; padding: 45px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid rgba(255, 255, 255, 0.05); background: rgba(0,0,0,0.2); }
                 .zone-right { flex: 0.8; padding: 0; display: flex; flex-direction: column; background: rgba(36, 41, 51, 0.4); }
                 .art-wrapper { width: 100%; aspect-ratio: 1/1; border-radius: 20px; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.6); position: relative; border: 1px solid rgba(255,255,255,0.05); }
-                #cover-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+                
+                /* ANIMATED GRADIENT FOR DEFAULT COVER */
+                #cover-img { 
+                    width: 100%; height: 100%; object-fit: cover; 
+                    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+                    background: linear-gradient(135deg, #B2BEB5, #7393B3);
+                    background-size: 200% 200%;
+                    animation: gradientMove 10s ease infinite;
+                }
+                @keyframes gradientMove { 0% {background-position:0% 50%} 50% {background-position:100% 50%} 100% {background-position:0% 50%} }
+
                 .track-info { margin-top: 25px; }
                 .track-title { font-size: 2rem; font-weight: 800; color: var(--nord-text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.5px; }
                 .track-artist { font-size: 1.1rem; color: var(--accent-red); font-weight: 600; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }
@@ -645,7 +654,10 @@
             <div class="ambient-glow"></div>
             <div class="nexus-shell">
                 <div class="zone-left">
-                    <div class="art-wrapper"><img id="cover-img" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBzdHlsZT0iYmFja2dyb3VuZDojMjQyOTMzIj48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzNCODI1MiIgZm9udC1zaXplPSI0MCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiPk5PUkQgQVJUPC90ZXh0Pjwvc3ZnPg==" alt="Art"></div>
+                    <div class="art-wrapper">
+                        <!-- Use transparent pixel src so CSS gradient background shows -->
+                        <img id="cover-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Art">
+                    </div>
                     <div class="track-info"><div id="title-display" class="track-title">Nexus XOS OLED</div><div id="artist-display" class="track-artist">Select Audio File</div></div>
                     <div class="controls-stack">
                         <div><input type="range" id="seek-slider" value="0" max="100"><div class="time-display"><span id="curr-time">0:00</span><span id="dur-time">0:00</span></div></div>
@@ -655,7 +667,8 @@
                 </div>
                 <div class="zone-right">
                     <div class="header-bar"><div class="brand">NEXUS<span>RED</span></div><label for="file-input" class="file-upload-label"><i class="fas fa-folder-open"></i> OPEN</label><input type="file" id="file-input" accept="audio/*"></div>
-                    <div class="lyrics-zone" id="lyrics-container"><div class="lyric-line active">System Ready</div><div class="lyric-line">Waiting for input...</div><div class="lyric-line">OLED Optimization: Active</div></div>
+                    <!-- REMOVED WAITING TEXT, ADDED MINIMAL PLACEHOLDER -->
+                    <div class="lyrics-zone" id="lyrics-container"><div class="lyric-line active" style="opacity:0.5">Nexus Music</div><div class="lyric-line">OLED Optimization: Active</div></div>
                     <canvas id="visualizer"></canvas>
                 </div>
             </div>
@@ -719,6 +732,9 @@
                                         const { data, format } = t.picture;
                                         let base64String = ""; for (let i = 0; i < data.length; i++) base64String += String.fromCharCode(data[i]);
                                         this.ui.cover.src = \`data:\${format};base64,\${window.btoa(base64String)}\`;
+                                    } else {
+                                        // Reset to transparent pixel so Gradient shows
+                                        this.ui.cover.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
                                     }
                                     if (t.lyrics) this.renderLyrics(t.lyrics.lyrics);
                                 },
