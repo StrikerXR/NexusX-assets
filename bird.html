@@ -4,6 +4,7 @@
    <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
    <title>Sky Glide</title>
+   <script src="https://unpkg.com/lucide@latest"></script>
    <style>
        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
 
@@ -86,6 +87,7 @@
            opacity: 0;
            animation: slideUp 0.5s forwards;
            min-width: 200px;
+           max-width: 90%;
        }
 
 
@@ -154,6 +156,54 @@
            transform: scale(0.95);
        }
 
+       .settings-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+            font-size: 24px;
+            transition: transform 0.2s;
+       }
+       .settings-btn:hover { transform: rotate(45deg); }
+
+       .control-row {
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           margin-bottom: 12px;
+           text-align: left;
+           color: white;
+       }
+       .control-row label { font-weight: 500; font-size: 0.9rem; }
+       input[type="color"] {
+           -webkit-appearance: none;
+           border: none;
+           width: 32px;
+           height: 32px;
+           background: none;
+           cursor: pointer;
+           padding: 0;
+       }
+       input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50%; }
+       input[type="color"]::-webkit-color-swatch { border: 2px solid white; border-radius: 50%; }
+
+       .switch { position: relative; width: 42px; height: 24px; }
+       .switch input { opacity: 0; width: 0; height: 0; }
+       .slider { position: absolute; inset: 0; background-color: rgba(0,0,0,0.3); transition: .4s; border-radius: 34px; }
+       .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+       input:checked + .slider { background-color: var(--primary-color); }
+       input:checked + .slider:before { transform: translateX(18px); }
 
        #hud {
            position: absolute;
@@ -186,6 +236,7 @@
 <div id="game-container">
    <canvas id="gameCanvas"></canvas>
 
+    <div class="settings-btn" id="settings-btn"><i data-lucide="settings"></i></div>
 
    <!-- HUD -->
    <div id="hud">
@@ -216,6 +267,39 @@
            <button id="restart-btn">TRY AGAIN</button>
        </div>
    </div>
+
+   <!-- Settings Screen -->
+    <div id="settings-screen" class="ui-layer hidden">
+        <div class="glass-panel">
+            <h1>Settings</h1>
+            <div class="control-row">
+                <label for="auto-fly">Auto Fly</label>
+                <label class="switch"><input type="checkbox" id="auto-fly"><span class="slider"></span></label>
+            </div>
+             <div class="control-row">
+                <label for="rainbow-bird">Rainbow Bird</label>
+                <label class="switch"><input type="checkbox" id="rainbow-bird"><span class="slider"></span></label>
+            </div>
+            <div class="control-row">
+                <label for="bird-color">Bird Color</label>
+                <input type="color" id="bird-color" value="#F4D03F">
+            </div>
+            <div class="control-row">
+                <label for="rainbow-pipes">Rainbow Pipes</label>
+                <label class="switch"><input type="checkbox" id="rainbow-pipes"><span class="slider"></span></label>
+            </div>
+            <div class="control-row">
+                <label for="pipe-color">Pipe Color</label>
+                <input type="color" id="pipe-color" value="#73C6B6">
+            </div>
+            <div class="control-row">
+                <label for="gold-pipe-rarity">Golden Pipe Rarity (1/x)</label>
+                <input type="range" id="gold-pipe-rarity" min="1" max="50" value="10">
+            </div>
+            <br>
+            <button id="close-settings-btn">Close</button>
+        </div>
+    </div>
 </div>
 
 
@@ -230,7 +314,13 @@
        speed: 2.5,
        pipeSpawnRate: 180,
        pipeGap: 170,
-       birdRadius: 16
+       birdRadius: 16,
+       autoFly: false,
+       birdColor: '#F4D03F',
+       pipeColor: '#73C6B6',
+       rainbowBird: false,
+       rainbowPipes: false,
+       goldPipeRarity: 10
    };
 
 
@@ -258,7 +348,17 @@
    const startBestEl = document.getElementById('start-best');
    const startBtn = document.getElementById('start-btn');
    const restartBtn = document.getElementById('restart-btn');
+   const settingsBtn = document.getElementById('settings-btn');
+   const settingsScreen = document.getElementById('settings-screen');
+   const closeSettingsBtn = document.getElementById('close-settings-btn');
 
+   // Settings elements
+   const autoFlyCheck = document.getElementById('auto-fly');
+   const birdColorInput = document.getElementById('bird-color');
+   const pipeColorInput = document.getElementById('pipe-color');
+   const rainbowBirdCheck = document.getElementById('rainbow-bird');
+   const rainbowPipesCheck = document.getElementById('rainbow-pipes');
+   const goldPipeRaritySlider = document.getElementById('gold-pipe-rarity');
 
    startBestEl.innerText = highScore;
 
@@ -336,13 +436,19 @@
 
 
            // Bird Body
-           let gradient = ctx.createRadialGradient(-5, -5, 2, 0, 0, 20);
-           gradient.addColorStop(0, '#F4D03F');
-           gradient.addColorStop(1, '#F39C12');
+           let birdFill;
+           if (config.rainbowBird) {
+               birdFill = `hsl(${frames * 2 % 360}, 100%, 50%)`;
+           } else {
+                let gradient = ctx.createRadialGradient(-5, -5, 2, 0, 0, 20);
+                gradient.addColorStop(0, config.birdColor);
+                gradient.addColorStop(1, '#F39C12');
+                birdFill = gradient;
+           }
           
            ctx.beginPath();
            ctx.arc(0, 0, config.birdRadius, 0, Math.PI * 2);
-           ctx.fillStyle = gradient;
+           ctx.fillStyle = birdFill;
            ctx.fill();
            ctx.lineWidth = 2;
            ctx.strokeStyle = '#fff';
@@ -386,6 +492,11 @@
                this.velocity = 0;
                this.rotation = 0;
            } else if (gameState === 'PLAYING') {
+                if (config.autoFly) {
+                    if (this.y > canvas.height / 2 + 50) {
+                        this.flap();
+                    }
+                }
                this.velocity += config.gravity;
                this.y += this.velocity;
 
@@ -428,19 +539,25 @@
        draw: function() {
            for(let i = 0; i < this.items.length; i++) {
                let p = this.items[i];
-              
-               // Safety check for invalid pipe data
                if (!p) continue;
 
-
-               // Reuse gradient calculation if possible or just draw
-               let grad = ctx.createLinearGradient(p.x, 0, p.x + p.w, 0);
-               grad.addColorStop(0, '#73C6B6');
-               grad.addColorStop(0.5, '#A3E4D7');
-               grad.addColorStop(1, '#48C9B0');
-
-
-               ctx.fillStyle = grad;
+               let fillStyle;
+                if (p.golden) {
+                    let grad = ctx.createLinearGradient(p.x, 0, p.x + p.w, 0);
+                    grad.addColorStop(0, '#FFD700');
+                    grad.addColorStop(0.5, '#FFFF00');
+                    grad.addColorStop(1, '#DAA520');
+                    fillStyle = grad;
+                } else if (config.rainbowPipes) {
+                    fillStyle = `hsl(${frames * 2 % 360}, 100%, 50%)`;
+                } else {
+                    let grad = ctx.createLinearGradient(p.x, 0, p.x + p.w, 0);
+                    grad.addColorStop(0, config.pipeColor);
+                    grad.addColorStop(0.5, '#A3E4D7');
+                    grad.addColorStop(1, config.pipeColor);
+                    fillStyle = grad;
+                }
+               ctx.fillStyle = fillStyle;
               
                // Top Pipe
                if (p.top > 0) {
@@ -469,14 +586,15 @@
                const availableSpace = Math.max(50, canvas.height - config.pipeGap - (minPipeHeight * 2));
                const topHeight = minPipeHeight + Math.random() * availableSpace;
                const bottomHeight = canvas.height - config.pipeGap - topHeight;
-
+               const isGolden = Math.random() < 1 / config.goldPipeRarity;
 
                this.items.push({
                    x: canvas.width,
                    w: 60,
                    top: topHeight,
                    bottom: Math.max(0, bottomHeight), // Ensure non-negative
-                   passed: false
+                   passed: false,
+                   golden: isGolden
                });
            }
 
@@ -509,7 +627,7 @@
 
                // Scoring
                if (p.x + p.w < bird.x && !p.passed) {
-                   score++;
+                   score += p.golden ? 100 : 1;
                    hudScore.innerText = score;
                    p.passed = true;
                }
@@ -648,6 +766,48 @@
    startBtn.addEventListener('click', startGame);
    restartBtn.addEventListener('click', startGame);
 
+   settingsBtn.addEventListener('click', () => {
+       settingsScreen.classList.remove('hidden');
+       startScreen.classList.add('hidden');
+       gameOverScreen.classList.add('hidden');
+   });
+
+   closeSettingsBtn.addEventListener('click', () => {
+       settingsScreen.classList.add('hidden');
+       if (gameState === 'START') {
+           startScreen.classList.remove('hidden');
+       } else if (gameState === 'GAMEOVER') {
+           gameOverScreen.classList.remove('hidden');
+       }
+   });
+
+    function saveSettings() {
+        localStorage.setItem('skyGlideSettings', JSON.stringify(config));
+    }
+
+    function loadSettings() {
+        try {
+            const saved = JSON.parse(localStorage.getItem('skyGlideSettings'));
+            if (saved) {
+                Object.assign(config, saved);
+            }
+        } catch(e) { console.warn("Could not load settings"); }
+
+        autoFlyCheck.checked = config.autoFly;
+        birdColorInput.value = config.birdColor;
+        pipeColorInput.value = config.pipeColor;
+        rainbowBirdCheck.checked = config.rainbowBird;
+        rainbowPipesCheck.checked = config.rainbowPipes;
+        goldPipeRaritySlider.value = config.goldPipeRarity;
+    }
+
+    autoFlyCheck.addEventListener('change', () => { config.autoFly = autoFlyCheck.checked; saveSettings(); });
+    birdColorInput.addEventListener('input', () => { config.birdColor = birdColorInput.value; saveSettings(); });
+    pipeColorInput.addEventListener('input', () => { config.pipeColor = pipeColorInput.value; saveSettings(); });
+    rainbowBirdCheck.addEventListener('change', () => { config.rainbowBird = rainbowBirdCheck.checked; saveSettings(); });
+    rainbowPipesCheck.addEventListener('change', () => { config.rainbowPipes = rainbowPipesCheck.checked; saveSettings(); });
+    goldPipeRaritySlider.addEventListener('input', () => { config.goldPipeRarity = goldPipeRaritySlider.value; saveSettings(); });
+
 
    // --- Game Loop ---
 
@@ -677,6 +837,8 @@
 
 
    // Start Loop
+   loadSettings();
+   lucide.createIcons();
    loop();
 
 
