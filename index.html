@@ -310,15 +310,24 @@
         .add-icon { font-size: 3rem; color: var(--text-dim); transition: 0.4s var(--bounce); }
         .add-tile:hover .add-icon { color: var(--accent); transform: scale(1.3); }
         
-        /* New Badge (Always Visible & Enhanced) */
+        /* New Badge (Modern & Animated) */
         .new-badge {
-            position: absolute; top: 15px; right: 15px; background: #22c55e; color: #000; font-weight: 800; font-size: 0.75rem;
-            height: 28px; width: 70px; border-radius: 14px; display: flex; align-items: center; overflow: hidden;
-            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.5); z-index: 5;
+            position: absolute; top: 12px; right: 12px;
+            background: linear-gradient(45deg, #22c55e, #16a34a);
+            color: #ffffff;
+            font-weight: 700; font-size: 0.7rem; letter-spacing: 0.5px;
+            padding: 6px 12px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(34, 197, 94, 0.4);
+            z-index: 5;
+            text-transform: uppercase;
+            transform: rotate(10deg) scale(0.9);
+            transform-origin: top right;
+            transition: transform 0.3s var(--bounce);
         }
-        .nb-content { display: flex; white-space: nowrap; width: 100%; }
-        .nb-n { width: 28px; text-align: center; flex-shrink: 0; display: flex; justify-content: center; align-items: center; }
-        .nb-full { opacity: 1; padding-right: 12px; }
+        .game-card:hover .new-badge {
+            transform: rotate(0deg) scale(1);
+        }
 
         /* --- SETTINGS --- */
         #settings-view { align-items: center; justify-content: center; background: rgba(0,0,0,0.2); }
@@ -1201,7 +1210,7 @@ const Notifications = {
                     const isCustom = i >= DefaultGames.length;
                     
                     let html = ``;
-                    if(g.isNew) html += `<div class="new-badge"><div class="nb-content"><div class="nb-n">N</div><div class="nb-full">ew</div></div></div>`;
+                    if(g.isNew) html += `<div class="new-badge">New</div>`;
                     if(isCustom) html += `<div class="card-del-btn" onclick="event.stopPropagation(); Games.removeCustom(${i - DefaultGames.length})"><i data-lucide="x" style="width:18px; height:18px;"></i></div>`;
 
                     html += `<div class="card-inner"><img src="${g.image}" loading="lazy"></div><div class="card-title">${g.title}</div>`;
