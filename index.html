@@ -617,8 +617,8 @@
     </div>
 
     <script>
-        /* --- MUSIC PLAYER CODE (Injected to prevent CSS conflicts) --- */
-        const musicPlayerHTML = `<!DOCTYPE html>
+/* --- MUSIC PLAYER CODE (Injected to prevent CSS conflicts) --- */
+const musicPlayerHTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -626,99 +626,73 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"><\/script>
     <style>
         :root {
-            --bg-oled: #000000;
-            --nord-dark-1: #242933;
-            --nord-text-main: #ECEFF4;
-            --nord-text-dim: #D8DEE9;
-            --accent-red: #ff3b3b;
-            --glass-surface: rgba(46, 52, 64, 0.4);
-            --glass-border: rgba(255, 255, 255, 0.08);
+            --bg-oled: #050505;
+            --accent-red: #ff3333;
+            --accent-glow: rgba(255, 51, 51, 0.4);
+            --glass: rgba(20, 20, 20, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+            --text: #ffffff;
+            --text-dim: #a0a0a0;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; user-select: none; -webkit-font-smoothing: antialiased; }
-        body { background-color: var(--bg-oled); color: var(--nord-text-main); height: 100vh; width: 100vw; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, system-ui, sans-serif; user-select: none; }
+        body { background-color: var(--bg-oled); color: var(--text); height: 100vh; width: 100vw; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         
-        /* Ambient Background */
-        .ambient-glow { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(255, 59, 59, 0.12) 0%, transparent 60%); top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 0; pointer-events: none; }
+        .ambient-glow { 
+            position: absolute; width: 100vw; height: 100vh; 
+            background: radial-gradient(circle at 50% 50%, rgba(255, 51, 51, 0.08) 0%, transparent 70%); 
+            z-index: 0; pointer-events: none; 
+        }
         
-        /* Better Blur Shell */
         .nexus-shell {
             width: 100%; height: 100%;
-            background: var(--glass-surface);
-            /* Increased Blur and Saturation for "Better Blur" */
-            backdrop-filter: blur(50px) saturate(140%) contrast(1.1);
-            -webkit-backdrop-filter: blur(50px) saturate(140%) contrast(1.1);
+            background: var(--glass);
+            backdrop-filter: blur(60px) saturate(160%);
+            -webkit-backdrop-filter: blur(60px) saturate(160%);
             display: flex; overflow: hidden; position: relative; z-index: 10;
         }
 
-        /* Noise Texture for realism */
-        .nexus-shell::before {
-            content: ""; position: absolute; top:0; left:0; width: 100%; height: 100%;
-            opacity: 0.03; pointer-events: none; z-index: -1;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-        }
-
-        .zone-left { flex: 1.2; padding: 45px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--glass-border); background: rgba(0,0,0,0.1); }
-        .zone-right { flex: 0.8; padding: 0; display: flex; flex-direction: column; background: rgba(36, 41, 51, 0.2); }
+        .zone-left { flex: 1.1; padding: 40px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--border); }
+        .zone-right { flex: 0.9; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); }
         
-        /* Art Wrapper now handles Video */
         .art-wrapper { 
-            width: 100%; aspect-ratio: 1/1; border-radius: 20px; overflow: hidden; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.7); position: relative; 
-            border: 1px solid var(--glass-border); 
-            background: #1a1a1a;
+            width: 100%; aspect-ratio: 1/1; border-radius: 16px; overflow: hidden; 
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8); position: relative; 
+            border: 1px solid var(--border); background: #000;
         }
         
-        #cover-img { 
-            width: 100%; height: 100%; object-fit: cover; 
-            transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-            background: linear-gradient(135deg, #2c3e50, #000000);
-            background-size: 200% 200%;
-            animation: gradientMove 15s ease infinite;
-            display: block;
-        }
-        
-        /* Video Element Style */
-        #video-element {
-            width: 100%; height: 100%; object-fit: contain;
-            display: none; background: #000;
-        }
-
-        @keyframes gradientMove { 0% {background-position:0% 50%} 50% {background-position:100% 50%} 100% {background-position:0% 50%} }
+        #cover-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        #video-element { width: 100%; height: 100%; object-fit: contain; display: none; }
 
         .track-info { margin-top: 25px; }
-        .track-title { font-size: 2rem; font-weight: 800; color: var(--nord-text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.5px; }
-        .track-artist { font-size: 1.1rem; color: var(--accent-red); font-weight: 600; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        .track-title { font-size: 2.2rem; font-weight: 800; letter-spacing: -1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .track-artist { font-size: 1rem; color: var(--accent-red); font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; }
         
         .controls-stack { margin-top: auto; display: flex; flex-direction: column; gap: 20px; }
         
-        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
-        input[type=range]:focus { outline: none; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: var(--accent-red); margin-top: -5px; cursor: pointer; box-shadow: 0 0 10px var(--accent-red); transition: transform 0.1s; }
-        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
-        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.1); border-radius: 2px; }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; height: 20px; cursor: pointer; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: var(--accent-red); margin-top: -5px; box-shadow: 0 0 12px var(--accent-glow); transition: 0.2s; }
+        input[type=range]:active::-webkit-slider-thumb { transform: scale(1.3); }
         
-        .time-display { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--nord-text-dim); font-family: monospace; margin-top: 8px; }
+        .time-display { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-dim); font-family: 'Monaco', monospace; margin-top: 6px; }
         
-        .main-buttons { display: flex; justify-content: center; align-items: center; gap: 40px; margin-top: 10px; }
-        .btn { background: none; border: none; color: var(--nord-text-main); font-size: 1.5rem; cursor: pointer; transition: all 0.2s; }
-        .btn:hover { color: var(--accent-red); text-shadow: 0 0 15px var(--accent-red); }
-        .btn-play { width: 70px; height: 70px; border-radius: 50%; background: var(--accent-red); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; box-shadow: 0 10px 30px rgba(255, 59, 59, 0.25); border: 1px solid rgba(255,255,255,0.1); }
-        .btn-play:hover { transform: scale(1.05); background: #ff5252; color: #fff; box-shadow: 0 0 40px rgba(255, 59, 59, 0.5); }
+        .main-buttons { display: flex; justify-content: center; align-items: center; gap: 35px; }
+        .btn { background: none; border: none; color: var(--text); font-size: 1.4rem; cursor: pointer; transition: 0.3s; opacity: 0.8; }
+        .btn:hover { color: var(--accent-red); opacity: 1; transform: scale(1.1); }
+        .btn-play { width: 65px; height: 65px; border-radius: 50%; background: var(--accent-red); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; opacity: 1; box-shadow: 0 10px 25px var(--accent-glow); }
         
-        .bass-module { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 15px; border: 1px solid var(--glass-border); display: flex; align-items: center; gap: 15px; }
-        .bass-icon { color: var(--accent-red); font-size: 1.2rem; width: 30px; text-align: center; }
-        .bass-info { flex: 1; }
-        .bass-header { font-size: 0.75rem; color: var(--nord-text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; display: flex; justify-content: space-between; }
+        .bass-module { background: rgba(255,255,255,0.03); border-radius: 14px; padding: 18px; border: 1px solid var(--border); }
+        .bass-header { display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; color: var(--text-dim); }
         
-        .header-bar { padding: 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); }
-        .brand { font-weight: 900; color: var(--nord-text-main); letter-spacing: 2px; }
+        .header-bar { padding: 30px; display: flex; justify-content: space-between; align-items: center; }
+        .brand { font-weight: 900; letter-spacing: 3px; font-size: 1.1rem; }
         .brand span { color: var(--accent-red); }
         
-        .file-upload-label { background: rgba(255, 59, 59, 0.1); color: var(--accent-red); border: 1px solid rgba(255, 59, 59, 0.3); padding: 8px 18px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: 0.3s; font-weight: 600; }
-        .file-upload-label:hover { background: var(--accent-red); color: white; box-shadow: 0 0 15px var(--accent-red); }
+        .file-upload-label { background: var(--accent-red); color: white; padding: 10px 22px; border-radius: 30px; font-size: 0.75rem; cursor: pointer; transition: 0.3s; font-weight: 700; box-shadow: 0 5px 15px var(--accent-glow); }
+        .file-upload-label:hover { transform: translateY(-2px); filter: brightness(1.1); }
         #file-input { display: none; }
         
-        #visualizer { width: 100%; height: 100%; min-height: 200px; flex:1; background: transparent; }
+        #visualizer { width: 100%; height: 100%; flex: 1; }
     </style>
 </head>
 <body>
@@ -726,56 +700,48 @@
     <div class="nexus-shell">
         <div class="zone-left">
             <div class="art-wrapper">
-                <img id="cover-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Art">
-                <video id="video-element" playsinline></video>
+                <img id="cover-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+                <video id="video-element" crossorigin="anonymous" playsinline></video>
             </div>
             <div class="track-info">
-                <div id="title-display" class="track-title">Nexus XOS</div>
-                <div id="artist-display" class="track-artist">Select Audio/Video</div>
+                <div id="title-display" class="track-title">NexusX Studio</div>
+                <div id="artist-display" class="track-artist">System Ready</div>
             </div>
             <div class="controls-stack">
+                <div class="main-buttons">
+                    <button class="btn" id="btn-prev"><i class="fas fa-backward"></i></button>
+                    <button class="btn btn-play" id="btn-play"><i class="fas fa-play"></i></button>
+                    <button class="btn" id="btn-next"><i class="fas fa-forward"></i></button>
+                </div>
                 <div>
-                    <input type="range" id="seek-slider" value="0" max="100">
+                    <input type="range" id="seek-slider" value="0" max="1000">
                     <div class="time-display"><span id="curr-time">0:00</span><span id="dur-time">0:00</span></div>
                 </div>
-                <div class="main-buttons">
-                    <button class="btn" id="btn-prev"><i class="fas fa-backward-step"></i></button>
-                    <button class="btn btn-play" id="btn-play"><i class="fas fa-play"></i></button>
-                    <button class="btn" id="btn-next"><i class="fas fa-forward-step"></i></button>
-                </div>
                 <div class="bass-module">
-                    <div class="bass-icon"><i class="fas fa-wave-square"></i></div>
-                    <div class="bass-info">
-                        <div class="bass-header"><span>Bass Boost</span><span id="bass-val" style="color:var(--accent-red)">0dB</span></div>
-                        <input type="range" id="bass-slider" min="0" max="25" value="0">
-                    </div>
+                    <div class="bass-header"><span>Sub-Bass Enhancement</span><span id="bass-val" style="color:var(--accent-red)">0%</span></div>
+                    <input type="range" id="bass-slider" min="0" max="100" value="0">
                 </div>
             </div>
         </div>
         <div class="zone-right">
             <div class="header-bar">
-                <div class="brand">NEXUS<span>RED</span></div>
-                <!-- Added acceptance for FLAC and Video formats -->
-                <label for="file-input" class="file-upload-label"><i class="fas fa-folder-open"></i> LOAD MEDIA</label>
-                <input type="file" id="file-input" accept="audio/*, video/*, .flac, .mkv, .webm">
+                <div class="brand">NEXUS<span>STUDIO</span></div>
+                <label for="file-input" class="file-upload-label"><i class="fas fa-plus"></i> ADD MEDIA</label>
+                <input type="file" id="file-input" accept="audio/*, video/*">
             </div>
             <canvas id="visualizer"></canvas>
         </div>
     </div>
+
     <script>
         class NexusPlayer {
             constructor() {
-                // Dual Media Elements
                 this.audioEl = new Audio();
                 this.videoEl = document.getElementById('video-element');
-                this.activeMedia = this.audioEl; // Default
-                this.mediaType = 'audio';
-
+                this.activeMedia = this.audioEl;
+                
                 this.audioCtx = null;
-                this.audioSourceNode = null;
-                this.videoSourceNode = null;
-                this.bassFilter = null;
-                this.analyser = null;
+                this.nodes = {}; // Store audio nodes
                 
                 this.ui = {
                     playBtn: document.getElementById('btn-play'),
@@ -792,241 +758,199 @@
                     canvas: document.getElementById('visualizer')
                 };
                 
-                this.canvasCtx = this.ui.canvas.getContext('2d');
-                this.bindEvents();
-                this.resizeCanvas();
-                window.addEventListener('resize', () => this.resizeCanvas());
+                this.ctx = this.ui.canvas.getContext('2d', { alpha: false });
+                this.setupEvents();
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
             }
 
             initAudioEngine() {
-                if (!this.audioCtx) {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    this.audioCtx = new AudioContext();
+                if (this.audioCtx) return;
 
-                    // Create sources for both elements once
-                    this.audioSourceNode = this.audioCtx.createMediaElementSource(this.audioEl);
-                    this.videoSourceNode = this.audioCtx.createMediaElementSource(this.videoEl);
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.audioCtx = new AudioContext({ latencyHint: 'playback' });
 
-                    this.bassFilter = this.audioCtx.createBiquadFilter();
-                    this.bassFilter.type = 'lowshelf';
-                    this.bassFilter.frequency.value = 85;
-                    this.bassFilter.gain.value = 0;
+                // Create Nodes
+                this.nodes.audioSrc = this.audioCtx.createMediaElementSource(this.audioEl);
+                this.nodes.videoSrc = this.audioCtx.createMediaElementSource(this.videoEl);
+                
+                // Bass Chain: LowShelf (Sub) + Peaking (Punch)
+                this.nodes.bassShelf = this.audioCtx.createBiquadFilter();
+                this.nodes.bassShelf.type = 'lowshelf';
+                this.nodes.bassShelf.frequency.value = 100;
 
-                    this.analyser = this.audioCtx.createAnalyser();
-                    this.analyser.fftSize = 512; // Higher Res for FLAC
-                    this.analyser.smoothingTimeConstant = 0.85;
+                this.nodes.bassPunch = this.audioCtx.createBiquadFilter();
+                this.nodes.bassPunch.type = 'peaking';
+                this.nodes.bassPunch.frequency.value = 60;
+                this.nodes.bassPunch.Q.value = 1.5;
 
-                    // Initial connection (Default audio)
-                    this.audioSourceNode.connect(this.bassFilter);
-                    this.bassFilter.connect(this.analyser);
-                    this.analyser.connect(this.audioCtx.destination);
+                // Audio Quality: Dynamics Compressor (Makes sound "thick" and prevents distortion)
+                this.nodes.compressor = this.audioCtx.createDynamicsCompressor();
+                this.nodes.compressor.threshold.setValueAtTime(-24, this.audioCtx.currentTime);
+                this.nodes.compressor.knee.setValueAtTime(30, this.audioCtx.currentTime);
+                this.nodes.compressor.ratio.setValueAtTime(3, this.audioCtx.currentTime);
+                this.nodes.compressor.attack.setValueAtTime(0.003, this.audioCtx.currentTime);
+                this.nodes.compressor.release.setValueAtTime(0.25, this.audioCtx.currentTime);
 
-                    this.loopVisualizer();
-                }
-                if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+                this.nodes.analyser = this.audioCtx.createAnalyser();
+                this.nodes.analyser.fftSize = 512;
+                this.nodes.analyser.smoothingTimeConstant = 0.8;
+
+                // Final Connection Chain
+                this.nodes.bassShelf.connect(this.nodes.bassPunch);
+                this.nodes.bassPunch.connect(this.nodes.compressor);
+                this.nodes.compressor.connect(this.nodes.analyser);
+                this.nodes.analyser.connect(this.audioCtx.destination);
+
+                this.routeSource();
+                this.draw();
             }
 
-            connectActiveSource() {
-                // Disconnect both first to prevent errors
-                try { this.audioSourceNode.disconnect(); } catch(e){}
-                try { this.videoSourceNode.disconnect(); } catch(e){}
-                
-                // Connect active
-                if (this.mediaType === 'video') {
-                    this.videoSourceNode.connect(this.bassFilter);
-                } else {
-                    this.audioSourceNode.connect(this.bassFilter);
-                }
-                
-                // Re-establish chain
-                this.bassFilter.disconnect();
-                this.bassFilter.connect(this.analyser);
-                this.analyser.connect(this.audioCtx.destination);
+            routeSource() {
+                this.nodes.audioSrc.disconnect();
+                this.nodes.videoSrc.disconnect();
+                const currentSource = (this.activeMedia === this.videoEl) ? this.nodes.videoSrc : this.nodes.audioSrc;
+                currentSource.connect(this.nodes.bassShelf);
             }
 
-            bindEvents() {
-                this.ui.playBtn.addEventListener('click', () => this.togglePlay());
+            setupEvents() {
+                this.ui.playBtn.onclick = () => this.toggle();
+                this.ui.fileIn.onchange = (e) => this.load(e.target.files[0]);
                 
-                this.ui.seek.addEventListener('input', (e) => {
-                    if(!this.activeMedia.duration) return;
-                    this.activeMedia.currentTime = (this.activeMedia.duration / 100) * e.target.value;
-                });
-                
-                this.ui.bass.addEventListener('input', (e) => {
+                this.ui.seek.oninput = (e) => {
+                    const time = (e.target.value / 1000) * this.activeMedia.duration;
+                    this.activeMedia.currentTime = time;
+                };
+
+                this.ui.bass.oninput = (e) => {
                     const val = e.target.value;
-                    this.ui.bassVal.innerText = \`+\${val}dB\`;
-                    if(this.bassFilter) this.bassFilter.gain.value = val;
-                });
-                
-                this.ui.fileIn.addEventListener('change', (e) => this.loadFile(e));
-                
-                // Bind both elements
-                [this.audioEl, this.videoEl].forEach(el => {
-                    el.addEventListener('timeupdate', () => {
-                        if(el === this.activeMedia) this.updateTime();
-                    });
-                    el.addEventListener('ended', () => {
-                        if(el === this.activeMedia) {
-                            this.ui.playIcon.className = 'fas fa-play';
-                            this.ui.cover.style.transform = 'scale(1)';
-                        }
-                    });
-                });
+                    this.ui.bassVal.innerText = \`\${val}%\`;
+                    if (this.nodes.bassShelf) {
+                        // Max 15dB boost distributed over two filters for high quality
+                        this.nodes.bassShelf.gain.setTargetAtTime(val * 0.12, this.audioCtx.currentTime, 0.1);
+                        this.nodes.bassPunch.gain.setTargetAtTime(val * 0.08, this.audioCtx.currentTime, 0.1);
+                    }
+                };
+
+                const update = () => {
+                    if (!this.activeMedia.paused) {
+                        const p = (this.activeMedia.currentTime / this.activeMedia.duration) * 1000;
+                        this.ui.seek.value = p || 0;
+                        this.ui.currTime.innerText = this.format(this.activeMedia.currentTime);
+                        this.ui.durTime.innerText = this.format(this.activeMedia.duration);
+                    }
+                    requestAnimationFrame(update);
+                };
+                update();
             }
 
-            togglePlay() {
+            async load(file) {
+                if (!file) return;
                 this.initAudioEngine();
                 
+                if (this.activeMedia.src) URL.revokeObjectURL(this.activeMedia.src);
+                const url = URL.createObjectURL(file);
+                
+                const isVideo = file.type.startsWith('video');
+                this.activeMedia = isVideo ? this.videoEl : this.audioEl;
+                
+                // Switch Visibility
+                this.videoEl.style.display = isVideo ? 'block' : 'none';
+                this.ui.cover.style.display = isVideo ? 'none' : 'block';
+                
+                this.audioEl.pause();
+                this.videoEl.pause();
+                this.activeMedia.src = url;
+                this.routeSource();
+                
+                this.ui.title.innerText = file.name;
+                this.ui.artist.innerText = isVideo ? "Video Media" : "Loading Tags...";
+                
+                if (!isVideo) this.getTags(file);
+                
+                this.activeMedia.play().then(() => {
+                    this.ui.playIcon.className = 'fas fa-pause';
+                });
+            }
+
+            getTags(file) {
+                if (window.jsmediatags) {
+                    window.jsmediatags.read(file, {
+                        onSuccess: (tag) => {
+                            this.ui.title.innerText = tag.tags.title || file.name;
+                            this.ui.artist.innerText = tag.tags.artist || "Unknown Artist";
+                            if (tag.tags.picture) {
+                                const { data, format } = tag.tags.picture;
+                                let base64 = "";
+                                for (let i = 0; i < data.length; i++) base64 += String.fromCharCode(data[i]);
+                                this.ui.cover.src = \`data:\${format};base64,\${btoa(base64)}\`;
+                            }
+                        },
+                        onError: () => { this.ui.artist.innerText = "Local Audio"; }
+                    });
+                }
+            }
+
+            toggle() {
+                this.initAudioEngine();
                 if (this.activeMedia.paused) {
-                    this.activeMedia.play()
-                        .then(() => {
-                            this.ui.playIcon.className = 'fas fa-pause';
-                            this.ui.cover.style.transform = 'scale(1.05)';
-                        })
-                        .catch(e => console.error("Playback error:", e));
+                    this.activeMedia.play();
+                    this.ui.playIcon.className = 'fas fa-pause';
                 } else {
                     this.activeMedia.pause();
                     this.ui.playIcon.className = 'fas fa-play';
-                    this.ui.cover.style.transform = 'scale(1)';
                 }
             }
 
-            updateTime() {
-                const cur = this.activeMedia.currentTime;
-                const dur = this.activeMedia.duration || 0;
-                if(dur > 0) this.ui.seek.value = (cur / dur) * 100;
-                this.ui.currTime.innerText = this.fmtTime(cur);
-                this.ui.durTime.innerText = this.fmtTime(dur);
-            }
-
-            fmtTime(s) {
-                const min = Math.floor(s / 60);
+            format(s) {
+                if (isNaN(s)) return "0:00";
+                const m = Math.floor(s / 60);
                 const sec = Math.floor(s % 60);
-                return \`\${min}:\${sec < 10 ? '0'+sec : sec}\`;
+                return \`\${m}:\${sec < 10 ? '0' + sec : sec}\`;
             }
 
-            loadFile(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                
-                // Stop current
-                this.audioEl.pause();
-                this.videoEl.pause();
-                this.ui.playIcon.className = 'fas fa-play';
-
-                const url = URL.createObjectURL(file);
-                
-                // Detect Type
-                if (file.type.startsWith('video')) {
-                    this.mediaType = 'video';
-                    this.activeMedia = this.videoEl;
-                    this.videoEl.src = url;
-                    this.videoEl.style.display = 'block';
-                    this.ui.cover.style.display = 'none';
-                    this.ui.title.innerText = file.name;
-                    this.ui.artist.innerText = "Video Playback";
-                } else {
-                    this.mediaType = 'audio';
-                    this.activeMedia = this.audioEl;
-                    this.audioEl.src = url;
-                    this.videoEl.style.display = 'none';
-                    this.ui.cover.style.display = 'block';
-                    
-                    // Initial metadata scan state
-                    this.ui.title.innerText = "Scanning FLAC/Audio...";
-                    this.ui.artist.innerText = "Please wait";
-                    
-                    // Metadata Extraction (Robust)
-                    this.extractMetadata(file);
-                }
-
-                // Initialize Audio Context if needed and switch routing
-                this.initAudioEngine();
-                this.connectActiveSource();
-                
-                // Auto Play
-                setTimeout(() => this.togglePlay(), 200);
+            resize() {
+                this.ui.canvas.width = this.ui.canvas.offsetWidth * window.devicePixelRatio;
+                this.ui.canvas.height = this.ui.canvas.offsetHeight * window.devicePixelRatio;
             }
 
-            extractMetadata(file) {
-                // Reset Art
-                this.ui.cover.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-                
-                if(window.jsmediatags) {
-                    window.jsmediatags.read(file, {
-                        onSuccess: (tag) => {
-                            const t = tag.tags;
-                            this.ui.title.innerText = t.title || file.name.replace(/\\.[^/.]+$/, "");
-                            this.ui.artist.innerText = t.artist || "Unknown Artist";
-                            
-                            if (t.picture) {
-                                const { data, format } = t.picture;
-                                let base64String = "";
-                                for (let i = 0; i < data.length; i++) base64String += String.fromCharCode(data[i]);
-                                this.ui.cover.src = \`data:\${format};base64,\${window.btoa(base64String)}\`;
-                            }
-                        },
-                        onError: (error) => {
-                            // Fallback for FLACs with header issues or unknown types
-                            console.log("Metadata warning:", error);
-                            this.ui.title.innerText = file.name.replace(/\\.[^/.]+$/, "");
-                            this.ui.artist.innerText = "Local Audio";
-                        }
-                    });
-                } else {
-                    this.ui.title.innerText = file.name;
-                    this.ui.artist.innerText = "Unknown";
-                }
-            }
+            draw() {
+                requestAnimationFrame(() => this.draw());
+                const data = new Uint8Array(this.nodes.analyser.frequencyBinCount);
+                this.nodes.analyser.getByteFrequencyData(data);
 
-            resizeCanvas() {
-                this.ui.canvas.width = this.ui.canvas.offsetWidth;
-                this.ui.canvas.height = this.ui.canvas.offsetHeight;
-            }
-
-            loopVisualizer() {
-                requestAnimationFrame(() => this.loopVisualizer());
-                if(!this.analyser) return;
-
-                const bufferLength = this.analyser.frequencyBinCount;
-                const dataArray = new Uint8Array(bufferLength);
-                this.analyser.getByteFrequencyData(dataArray);
-
-                const ctx = this.canvasCtx;
                 const w = this.ui.canvas.width;
                 const h = this.ui.canvas.height;
-                
-                // Visualizer Style
-                ctx.clearRect(0, 0, w, h);
-                
-                const barWidth = (w / bufferLength) * 2.5;
+                this.ctx.fillStyle = '#050505';
+                this.ctx.fillRect(0, 0, w, h);
+
+                const barWidth = (w / data.length) * 2.5;
                 let x = 0;
 
-                for(let i = 0; i < bufferLength; i++) {
-                    const barHeight = (dataArray[i] / 255) * h;
+                for (let i = 0; i < data.length; i++) {
+                    const barHeight = (data[i] / 255) * h * 0.8;
+                    const r = 255;
+                    const g = 51;
+                    const b = 51;
+
+                    this.ctx.fillStyle = \`rgba(\${r}, \${g}, \${b}, \${data[i] / 255})\`;
+                    this.ctx.shadowBlur = 15;
+                    this.ctx.shadowColor = 'rgba(255, 51, 51, 0.5)';
                     
-                    // Dynamic color based on loudness
-                    const gradient = ctx.createLinearGradient(0, h, 0, h - barHeight);
-                    gradient.addColorStop(0, '#5e1b1b');
-                    gradient.addColorStop(0.5, '#ff3b3b');
-                    gradient.addColorStop(1, '#ff8a8a');
-                    
-                    ctx.fillStyle = gradient;
-                    ctx.beginPath();
-                    // Smooth rounded bars
-                    ctx.roundRect(x, h - barHeight, barWidth - 2, barHeight, [4,4,0,0]);
-                    ctx.fill();
+                    // Rounded top bars
+                    this.ctx.beginPath();
+                    this.ctx.roundRect(x, h - barHeight, barWidth - 4, barHeight, [10, 10, 0, 0]);
+                    this.ctx.fill();
 
                     x += barWidth;
                 }
             }
         }
 
-        window.addEventListener('DOMContentLoaded', () => { new NexusPlayer(); });
+        window.onload = () => new NexusPlayer();
     <\/script>
 </body>
 </html>`;
-
         /* --- STATE --- */
         const State = {
             version: "12.2",
