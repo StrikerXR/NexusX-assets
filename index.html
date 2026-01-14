@@ -9,8 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
     <!-- MARKED.JS FOR MARKDOWN PARSING -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- LUCIDE ICONS -->
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
             /* --- THEME VARIABLES --- */
@@ -26,8 +24,7 @@
             --card-bg: #111;
             
             /* --- ENHANCED PHYSICS (Springy) --- */
-            --fluid: cubic-bezier(0.2, 0.8, 0.2, 1);
-            --bounce: cubic-bezier(0.68, -0.6, 0.32, 1.6); 
+            --fluid: cubic-bezier(0.25, 1, 0.5, 1);
             --smooth: cubic-bezier(0.4, 0, 0.2, 1);
         }
 
@@ -88,7 +85,7 @@
             box-shadow: 0 30px 60px rgba(0,0,0,0.5);
             display: flex; flex-direction: column; align-items: center;
             transform: scale(0.9) translateY(20px); opacity: 0;
-            transition: 0.8s var(--bounce);
+            transition: 0.5s var(--fluid);
         }
         
         #oobe-overlay.active .pill-container {
@@ -146,7 +143,7 @@
         .spoof-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; overflow-y: auto; padding: 5px; width: 100%; }
         .spoof-item {
             background: rgba(125,125,125,0.1); border-radius: 16px; padding: 12px; cursor: pointer;
-            display: flex; flex-direction: column; align-items: center; gap: 8px; transition: 0.3s var(--bounce); border: 1px solid transparent;
+            display: flex; flex-direction: column; align-items: center; gap: 8px; transition: 0.3s var(--fluid); border: 1px solid transparent;
         }
         .spoof-item:hover { background: rgba(125,125,125,0.2); transform: scale(1.05); }
         .spoof-item.selected { border-color: var(--accent); background: var(--accent-glow); }
@@ -171,7 +168,7 @@
         .tray-item {
             background: var(--glass-bg); border: 1px solid var(--glass-border); backdrop-filter: var(--glass-blur);
             color: var(--text-main); height: 44px; display: flex; align-items: center; justify-content: center;
-            border-radius: 22px; transition: 0.4s var(--bounce); cursor: pointer;
+            border-radius: 22px; transition: 0.4s var(--fluid); cursor: pointer;
         }
         .tray-item:hover { transform: scale(1.1); background: rgba(125,125,125,0.2); }
         .clock { padding: 0 20px; font-variant-numeric: tabular-nums; font-weight: 600; min-width: 80px; }
@@ -183,7 +180,7 @@
             backdrop-filter: blur(12px); 
             box-shadow: 0 20px 40px rgba(0,0,0,0.5); border-radius: 24px;
             transform-origin: top right; transform: scale(0.5) translateY(-50px); 
-            opacity: 0; pointer-events: none; transition: 0.5s var(--bounce); z-index: 2000;
+            opacity: 0; pointer-events: none; transition: 0.5s var(--fluid); z-index: 2000;
             display: flex; flex-direction: column; overflow: hidden;
         }
         #notification-center.active { transform: scale(1) translateY(0); opacity: 1; pointer-events: auto; }
@@ -230,7 +227,7 @@
         #todo-widget {
             position: absolute; top: 60px; right: 0; width: 340px; background: var(--card-bg);
             border: 1px solid var(--glass-border); box-shadow: 0 20px 40px rgba(0,0,0,0.4); border-radius: 20px; padding: 20px;
-            transform-origin: top right; transform: scale(0.5) translateY(-50px); opacity: 0; pointer-events: none; transition: 0.5s var(--bounce); z-index: 2000;
+            transform-origin: top right; transform: scale(0.5) translateY(-50px); opacity: 0; pointer-events: none; transition: 0.5s var(--fluid); z-index: 2000;
         }
         #todo-widget.active { transform: scale(1) translateY(0); opacity: 1; pointer-events: auto; }
         
@@ -263,7 +260,7 @@
         .view-container { flex: 1; position: relative; width: 100%; display: flex; overflow: hidden; }
         .content-view {
             position: absolute; inset: 0; opacity: 0; visibility: hidden; transform: scale(0.96) translateY(20px);
-            transition: opacity 0.4s ease, transform 0.6s var(--bounce), visibility 0.4s; display: flex; flex-direction: column;
+            transition: opacity 0.4s ease, transform 0.4s var(--fluid), visibility 0.4s; display: flex; flex-direction: column;
         }
         .content-view.active-view { opacity: 1; visibility: visible; transform: scale(1) translateY(0); z-index: 10; }
 
@@ -300,14 +297,14 @@
         .card-del-btn {
             position: absolute; top: -10px; right: -10px; width: 30px; height: 30px;
             background: #ef4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-weight: 800; font-size: 14px; opacity: 0; transform: scale(0.5); transition: 0.3s var(--bounce); z-index: 20;
+            font-weight: 800; font-size: 14px; opacity: 0; transform: scale(0.5); transition: 0.3s var(--fluid); z-index: 20;
             box-shadow: 0 4px 10px rgba(239, 68, 68, 0.5);
         }
         .game-card:hover .card-del-btn { opacity: 1; transform: scale(1); top: -10px; right: -10px; }
         .card-del-btn:hover { transform: scale(1.2) rotate(90deg); background: #dc2626; }
 
         .add-tile .card-inner { display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(125,125,125,0.05); }
-        .add-icon { font-size: 3rem; color: var(--text-dim); transition: 0.4s var(--bounce); }
+        .add-icon { font-size: 3rem; color: var(--text-dim); transition: 0.4s var(--fluid); }
         .add-tile:hover .add-icon { color: var(--accent); transform: scale(1.3); }
         
         /* New Badge (Modern & Animated) */
@@ -323,7 +320,7 @@
             text-transform: uppercase;
             transform: rotate(10deg) scale(0.9);
             transform-origin: top right;
-            transition: transform 0.3s var(--bounce);
+            transition: transform 0.3s var(--fluid);
         }
         .game-card:hover .new-badge {
             transform: rotate(0deg) scale(1);
@@ -365,7 +362,7 @@
         .switch { position: relative; width: 42px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; inset: 0; background-color: rgba(125,125,125,0.3); transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s var(--bounce); border-radius: 50%; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s var(--fluid); border-radius: 50%; }
         input:checked + .slider { background-color: var(--accent); }
         input:checked + .slider:before { transform: translateX(18px); }
 
@@ -375,7 +372,7 @@
 
         .btn {
             padding: 10px 20px; border-radius: 12px; font-weight: 600; text-decoration: none;
-            transition: all 0.3s var(--bounce); display: inline-flex; align-items: center; justify-content: center;
+            transition: all 0.3s var(--fluid); display: inline-flex; align-items: center; justify-content: center;
             font-size: 0.9rem; cursor: pointer; border: none;
         }
         .btn-primary { background: var(--accent); color: white; }
@@ -410,7 +407,7 @@
             background: #000; border-radius: 30px; overflow: hidden;
             box-shadow: 0 40px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,59,59,0.2);
             z-index: 9999; display: flex; flex-direction: column; resize: both; min-width: 600px; min-height: 400px;
-            transition: opacity 0.4s ease, transform 0.4s var(--bounce);
+            transition: opacity 0.4s ease, transform 0.4s var(--fluid);
         }
         #music-window.active { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
         
@@ -483,6 +480,19 @@
         </div>
     </div>
 
+    <!-- CHANGELOG MODAL -->
+    <div id="changelog-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span class="modal-title">Changelog</span>
+                <button class="btn btn-danger" style="padding:6px 12px;" onclick="Modals.close('changelog-modal')">Close</button>
+            </div>
+            <div class="nc-body" id="changelog-content" style="max-height: 60vh; padding-right: 15px;">
+                <div class="notif-loading">Loading Changelog...</div>
+            </div>
+        </div>
+    </div>
+
     <!-- BACKGROUND -->
     <div id="bg-wrapper"><div id="bg-default"></div></div>
     <div id="bg-orb"></div>
@@ -499,16 +509,16 @@
                 
                 <!-- MUSIC PLAYER ICON -->
                 <div class="tray-item icon-btn" onclick="MusicApp.toggle()" style="width:44px; padding:0;">
-                    <i data-lucide="music-2"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="18" r="4"/><path d="M12 18V2l7 4"/></svg>
                 </div>
 
                 <!-- NOTIFICATION ICON -->
                 <div class="tray-item icon-btn" onclick="Notifications.toggle()" style="width:44px; padding:0;">
-                    <i data-lucide="bell"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                 </div>
 
                 <div class="tray-item icon-btn" onclick="Utils.toggleFull()" style="width:44px; padding:0;">
-                    <i data-lucide="maximize"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
                 </div>
 
                 <!-- NOTIFICATION CENTER -->
@@ -527,7 +537,7 @@
                     <div class="todo-input-group">
                         <input type="text" class="todo-input" id="todo-input" placeholder="Task..." onkeypress="Todo.handleInput(event)">
                         <input type="time" class="time-input" id="todo-time" title="Set Alarm">
-                        <button class="btn btn-primary" style="padding:0 12px;" onclick="Todo.add()"><i data-lucide="plus"></i></button>
+                        <button class="btn btn-primary" style="padding:0 12px;" onclick="Todo.add()"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
                     </div>
                     <ul class="todo-list" id="todo-list"></ul>
                 </div>
@@ -544,8 +554,8 @@
                     </div>
                 </div>
                 <div class="games-container">
-                    <div class="scroll-arrow left" onclick="Games.scroll(-1)"><i data-lucide="chevron-left"></i></div>
-                    <div class="scroll-arrow right" onclick="Games.scroll(1)"><i data-lucide="chevron-right"></i></div>
+                    <div class="scroll-arrow left" onclick="Games.scroll(-1)"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></div>
+                    <div class="scroll-arrow right" onclick="Games.scroll(1)"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div>
                     <div class="carousel-track" id="card-track"></div>
                 </div>
             </div>
@@ -555,7 +565,7 @@
                 <div class="settings-box">
                     <div class="st-header">
                         <h2>Control Center</h2>
-                        <a href="https://nexusx.w3spaces.com/beta.html" class="beta-btn">Go to Beta <i data-lucide="arrow-up-right" style="width:12px; margin-left:5px;"></i></a>
+                        <a href="https://nexusx.w3spaces.com/beta.html" class="beta-btn">Go to Beta <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px; margin-left:5px;"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg></a>
                     </div>
                     
                     <div class="st-body">
@@ -597,6 +607,10 @@
                                 <span>Factory Reset</span>
                                 <button class="btn btn-danger" onclick="OOBE.reset()">Reset</button>
                             </div>
+                             <div class="control-row">
+                                <span>View Changelog</span>
+                                <button class="btn btn-ghost" onclick="Changelog.open()">View</button>
+                            </div>
                             <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="Utils.openBlank()">Launch in about:blank</button>
                         </div>
                     </div>
@@ -609,7 +623,7 @@
     <div id="music-window">
         <div class="win-header" id="mw-header">
             <div class="win-title">NexusX Player</div>
-            <div class="win-close" onclick="MusicApp.toggle()"><i data-lucide="x"></i></div>
+            <div class="win-close" onclick="MusicApp.toggle()"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></div>
         </div>
         <div class="win-content">
             <iframe id="music-frame"></iframe>
@@ -1135,7 +1149,7 @@ const Notifications = {
                     
                     let html = ``;
                     if(g.isNew) html += `<div class="new-badge">New</div>`;
-                    if(isCustom) html += `<div class="card-del-btn" onclick="event.stopPropagation(); Games.removeCustom(${i - DefaultGames.length})"><i data-lucide="x" style="width:18px; height:18px;"></i></div>`;
+                    if(isCustom) html += `<div class="card-del-btn" onclick="event.stopPropagation(); Games.removeCustom(${i - DefaultGames.length})"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></div>`;
 
                     html += `<div class="card-inner"><img src="${g.image}" loading="lazy"></div><div class="card-title">${g.title}</div>`;
                     
@@ -1317,7 +1331,7 @@ const Notifications = {
                             <span class="todo-text">${item.t}</span>
                             ${timeBadge}
                         </div>
-                        <div class="todo-del" onclick="Todo.remove(${i})"><i data-lucide="x" style="width:16px; height:16px;"></i></div>
+                        <div class="todo-del" onclick="Todo.remove(${i})"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></div>
                     `;
                     list.appendChild(li);
                 });
@@ -1361,6 +1375,32 @@ const Notifications = {
         const Modals = {
             open: (id) => document.getElementById(id).classList.add('active'),
             close: (id) => document.getElementById(id).classList.remove('active')
+        };
+
+        const Changelog = {
+            loaded: false,
+            open: () => {
+                Modals.open('changelog-modal');
+                if (Changelog.loaded) return;
+
+                const content = document.getElementById('changelog-content');
+                fetch('notification.md')
+                    .then(r => {
+                        if (!r.ok) throw new Error('Network response was not ok');
+                        return r.text();
+                    })
+                    .then(text => {
+                        content.innerHTML = `<div class="notif-card">${marked.parse(text)}</div>`;
+                        Changelog.loaded = true;
+                    })
+                    .catch(e => {
+                        console.error("Changelog Error:", e);
+                        content.innerHTML = `<div class="notif-card" style="color:#ef4444">
+                            <strong>Fetch Error:</strong><br>
+                            Failed to load the changelog.
+                        </div>`;
+                    });
+            }
         };
 
         const View = {
