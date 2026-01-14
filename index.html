@@ -1384,7 +1384,10 @@ const Notifications = {
                 if (Changelog.loaded) return;
 
                 const content = document.getElementById('changelog-content');
-                fetch('notification.md')
+                const proxyUrl = 'https://api.allorigins.win/raw?url=';
+                const targetUrl = 'https://pastebin.com/raw/6zCTDTmj';
+
+                fetch(proxyUrl + encodeURIComponent(targetUrl))
                     .then(r => {
                         if (!r.ok) throw new Error('Network response was not ok');
                         return r.text();
