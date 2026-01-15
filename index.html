@@ -631,13 +631,14 @@
     </div>
 
     <script>
-/* --- MUSIC PLAYER CODE (Injected to prevent CSS conflicts) --- */
+/* --- MUSIC PLAYER CODE (FIXED: Metadata, Squiggle, Easter Egg, Escaped) --- */
 const musicPlayerHTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js" integrity="sha512-bF7d8F/63Q1/T8e/4Q8pW2/a2S3T1K3e/2T7h/lGuIO/ynmN+p159D/3f2G/t1OKe/h/M+X/G4H2n2/r8/08g==" crossorigin="anonymous" referrerpolicy="no-referrer"><\/script>
+    <title>Nexus Player</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"><\/script>
     <style>
         :root {
             --bg-oled: #050505;
@@ -648,556 +649,457 @@ const musicPlayerHTML = `<!DOCTYPE html>
             --text: #ffffff;
             --text-dim: #a0a0a0;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, system-ui, sans-serif; user-select: none; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; user-select: none; }
         body { background-color: var(--bg-oled); color: var(--text); height: 100vh; width: 100vw; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         
+        /* BACKGROUND & SHELL */
         .ambient-glow { 
             position: absolute; width: 100vw; height: 100vh; 
             background: radial-gradient(circle at 50% 50%, var(--accent-glow) 0%, transparent 70%);
             z-index: 0; pointer-events: none; opacity: 0.5;
         }
-        
         .nexus-shell {
             width: 100%; height: 100%;
             background: var(--glass);
             backdrop-filter: blur(60px) saturate(160%);
             -webkit-backdrop-filter: blur(60px) saturate(160%);
             display: flex; overflow: hidden; position: relative; z-index: 10;
+            transition: transform 0.5s ease, filter 0.5s ease;
         }
 
-        .zone-left { 
-            flex: 1; padding: 25px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--border); 
-            min-width: 300px; overflow: hidden;
-        }
+        /* LAYOUT ZONES */
+        .zone-left { flex: 1; padding: 25px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--border); min-width: 300px; }
         .zone-right { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); min-width: 250px; }
         
-        /* PLAYLIST STYLING */
-        .playlist-header { font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); padding: 0 30px 15px 30px; border-bottom: 1px solid var(--border); }
-        #playlist { list-style: none; overflow-y: auto; flex: 1; }
-        .playlist-item {
-            display: flex; align-items: center; gap: 15px; padding: 15px 30px;
-            cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05);
-            transition: background 0.2s;
-        }
-        .playlist-item:hover { background: rgba(255,255,255,0.05); }
-        .playlist-item.playing { background: var(--accent-glow); }
-        .playlist-item .track-num { font-size: 0.8rem; color: var(--text-dim); font-weight: 700; }
-        .playlist-item .track-title { font-weight: 600; color: var(--text); }
-        .playlist-item .track-artist { font-size: 0.8rem; color: var(--text-dim); }
-
+        /* ARTWORK */
         .art-wrapper { 
-            width: 100%; max-height: 45vh; aspect-ratio: 1/1; border-radius: 16px; overflow: hidden; 
+            width: 100%; max-height: 40vh; aspect-ratio: 1/1; border-radius: 16px; overflow: hidden; 
             box-shadow: 0 25px 60px rgba(0,0,0,0.8); position: relative; 
-            border: 1px solid var(--border); background: #000;
-            margin: 0 auto;
+            border: 1px solid var(--border); background: #000; margin: 0 auto;
         }
+        #cover-img { width: 100%; height: 100%; object-fit: cover; }
         
-        #cover-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
-        #video-element { width: 100%; height: 100%; object-fit: contain; display: none; }
-
-        .track-info { margin-top: 15px; flex-shrink: 0; }
+        /* TRACK INFO */
+        .track-info { margin-top: 15px; flex-shrink: 0; text-align: center; }
         .track-title { font-size: 1.8rem; font-weight: 800; letter-spacing: -1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .track-artist { font-size: 0.9rem; color: var(--accent); font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; }
+        .track-artist { font-size: 0.9rem; color: var(--accent); font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px; }
+
+        /* SQUIGGLE SEEK BAR CONTAINER */
+        .seek-container {
+            position: relative; width: 100%; height: 40px; margin: 10px 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        /* The invisible slider that captures clicks */
+        input[type=range].seek-input {
+            position: absolute; width: 100%; height: 100%; opacity: 0; z-index: 5; cursor: pointer; margin: 0;
+        }
+        /* The SVG Visual */
+        .seek-visual {
+            width: 100%; height: 100%; pointer-events: none;
+        }
+        .squiggle-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3px; stroke-linecap: round; }
+        .squiggle-progress { 
+            fill: none; stroke: var(--accent); stroke-width: 3px; stroke-linecap: round;
+            stroke-dasharray: 1000; stroke-dashoffset: 1000; /* Will be manipulated by JS */
+            filter: drop-shadow(0 0 5px var(--accent-glow));
+        }
+
+        .time-display { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-dim); font-family: monospace; }
         
-        .controls-stack { margin-top: auto; display: flex; flex-direction: column; gap: 15px; padding-top: 15px; flex-shrink: 0; }
-        
-        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; height: 20px; cursor: pointer; }
-        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: var(--accent); margin-top: -5px; box-shadow: 0 0 12px var(--accent-glow); transition: 0.2s; }
-        input[type=range]:active::-webkit-slider-thumb { transform: scale(1.3); }
-        
-        .time-display { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-dim); font-family: 'Monaco', monospace; margin-top: 6px; }
-        
-        .main-buttons { display: flex; justify-content: center; align-items: center; gap: 35px; }
+        /* CONTROLS */
+        .main-buttons { display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 10px; }
         .btn { background: none; border: none; color: var(--text); font-size: 1.4rem; cursor: pointer; transition: 0.3s; opacity: 0.8; }
         .btn:hover { color: var(--accent); opacity: 1; transform: scale(1.1); }
-        .btn-play { width: 55px; height: 55px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; opacity: 1; box-shadow: 0 10px 25px var(--accent-glow); }
+        .btn-play { width: 55px; height: 55px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px var(--accent-glow); }
         
-        .bass-module { background: rgba(255,255,255,0.03); border-radius: 14px; padding: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center; }
-        .bass-header { display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; color: var(--text-dim); }
-        
-        .header-bar { padding: 30px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        /* PLAYLIST & RIGHT ZONE */
+        .header-bar { padding: 30px; display: flex; justify-content: space-between; align-items: center; }
         .brand { font-weight: 900; letter-spacing: 3px; font-size: 1.1rem; }
         .brand span { color: var(--accent); }
-        
-        .file-upload-label { background: var(--accent); color: white; padding: 10px 22px; border-radius: 30px; font-size: 0.75rem; cursor: pointer; transition: 0.3s; font-weight: 700; box-shadow: 0 5px 15px var(--accent-glow); }
-        .file-upload-label:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .file-upload-label { background: var(--accent); padding: 10px 22px; border-radius: 30px; font-size: 0.75rem; cursor: pointer; font-weight: 700; box-shadow: 0 5px 15px var(--accent-glow); }
         #file-input { display: none; }
         
-        #visualizer { width: 100%; height: 150px; flex: none; }
+        .playlist-header { font-weight: 700; font-size: 0.9rem; color: var(--text-dim); padding: 0 30px 15px; border-bottom: 1px solid var(--border); }
+        #playlist { list-style: none; overflow-y: auto; flex: 1; }
+        .playlist-item { padding: 15px 30px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; gap: 15px; align-items: center; }
+        .playlist-item:hover { background: rgba(255,255,255,0.05); }
+        .playlist-item.playing { background: rgba(0, 123, 255, 0.1); border-left: 4px solid var(--accent); }
+        
+        #visualizer { width: 100%; height: 120px; flex: none; }
 
-        /* EASTER EGG CSS */
+        /* --- EASTER EGG CSS --- */
         #secret-overlay {
             position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-            background: black; color: white; font-size: 4rem; font-weight: 900; letter-spacing: 2px;
-            opacity: 0; pointer-events: none; transition: opacity 1s ease; z-index: 1000;
+            background: #000; color: #fff; font-size: 4rem; font-weight: 900; letter-spacing: 2px;
+            opacity: 0; pointer-events: none; transition: opacity 0.5s ease; z-index: 9999;
             text-align: center;
+            font-family: "Comic Sans MS", "Chalkboard SE", sans-serif;
+        }
+        
+        body.imploding .nexus-shell {
+            animation: blackHoleSuck 2.5s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+        }
+        
+        body.exploding .nexus-shell {
+            animation: bigBang 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
-        .black-hole-anim { animation: implode 2.5s cubic-bezier(0.5, 0, 1, 1) forwards; }
-        .big-bang-anim { animation: explode 1s cubic-bezier(0, 0.5, 0.5, 1) forwards; }
-
-        @keyframes implode {
+        @keyframes blackHoleSuck {
             0% { transform: scale(1) rotate(0deg); filter: brightness(1); }
-            50% { transform: scale(0.5) rotate(180deg); filter: brightness(0.5); }
-            100% { transform: scale(0) rotate(720deg); filter: brightness(0); }
-        }
-        @keyframes explode {
-            0% { transform: scale(0); filter: brightness(2); }
-            60% { transform: scale(1.1); }
-            100% { transform: scale(1); filter: brightness(1); }
+            40% { transform: scale(0.9) rotate(5deg); filter: brightness(0.8) hue-rotate(90deg); }
+            100% { transform: scale(0) rotate(720deg); filter: brightness(0); border-radius: 50%; }
         }
 
-        @media (max-width: 800px) {
-            .nexus-shell { flex-direction: column; overflow-y: auto; }
-            .zone-left, .zone-right { width: 100%; overflow: visible; }
-            .art-wrapper { max-height: 300px; width: 300px; }
+        @keyframes bigBang {
+            0% { transform: scale(0); filter: brightness(5); }
+            100% { transform: scale(1); filter: brightness(1); }
         }
     </style>
 </head>
 <body>
     <div id="secret-overlay">YIPEEE GOOD SONG :)</div>
     <div class="ambient-glow"></div>
+    
     <div class="nexus-shell">
         <div class="zone-left">
             <div class="art-wrapper">
                 <img id="cover-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
-                <video id="video-element" crossorigin="anonymous" playsinline></video>
             </div>
+            
             <div class="track-info">
-                <div id="title-display" class="track-title">NexusX Studio</div>
-                <div id="artist-display" class="track-artist">System Ready</div>
+                <div id="title-display" class="track-title">Nexus Player</div>
+                <div id="artist-display" class="track-artist">Select Audio</div>
             </div>
+
             <div class="controls-stack">
+                <div class="seek-container">
+                    <input type="range" id="seek-slider" class="seek-input" value="0" max="1000" step="1">
+                    <svg class="seek-visual" id="seek-svg" viewBox="0 0 300 40" preserveAspectRatio="none">
+                        <path id="sq-bg" class="squiggle-bg" d="" />
+                        <path id="sq-prog" class="squiggle-progress" d="" />
+                    </svg>
+                </div>
+                <div class="time-display"><span id="curr-time">0:00</span><span id="dur-time">0:00</span></div>
+
                 <div class="main-buttons">
                     <button class="btn" id="btn-prev"><i class="fas fa-backward"></i></button>
                     <button class="btn btn-play" id="btn-play"><i class="fas fa-play"></i></button>
                     <button class="btn" id="btn-next"><i class="fas fa-forward"></i></button>
                 </div>
-                <div>
-                    <input type="range" id="seek-slider" value="0" max="1000">
-                    <div class="time-display"><span id="curr-time">0:00</span><span id="dur-time">0:00</span></div>
-                </div>
-                <div class="bass-module">
-                    <div class="bass-header"><span>Sub-Bass Enhancement</span><span id="bass-val" style="color:var(--accent)">0%</span></div>
-                    <input type="range" id="bass-slider" min="0" max="100" value="0">
-                </div>
             </div>
         </div>
+
         <div class="zone-right">
             <div class="header-bar">
                 <div class="brand">NEXUS<span>STUDIO</span></div>
-                <label for="file-input" class="file-upload-label"><i class="fas fa-plus"></i> ADD MEDIA</label>
-                <input type="file" id="file-input" accept="audio/*, video/*" multiple>
+                <label for="file-input" class="file-upload-label"><i class="fas fa-plus"></i> LOAD MP3</label>
+                <input type="file" id="file-input" accept="audio/*" multiple>
             </div>
-            <div class="playlist-header">UP NEXT</div>
+            <div class="playlist-header">QUEUE</div>
             <ul id="playlist"></ul>
             <canvas id="visualizer"></canvas>
         </div>
     </div>
 
     <script>
+        // --- 1. INDEXED DB (Persistence) ---
         const DB = {
             db: null,
             init() {
-                return new Promise((resolve, reject) => {
-                    const request = indexedDB.open('NexusPlayerDB', 1);
-                    request.onupgradeneeded = (event) => {
-                        this.db = event.target.result;
-                        if (!this.db.objectStoreNames.contains('playlist')) {
-                            this.db.createObjectStore('playlist', { keyPath: 'id', autoIncrement: true });
-                        }
+                return new Promise((resolve) => {
+                    const r = indexedDB.open('NexusDB', 1);
+                    r.onupgradeneeded = e => {
+                        this.db = e.target.result;
+                        if (!this.db.objectStoreNames.contains('tracks')) this.db.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
                     };
-                    request.onsuccess = (event) => { this.db = event.target.result; resolve(); };
-                    request.onerror = (event) => { console.error("IndexedDB error:", event.target.errorCode); reject(event.target.errorCode); };
+                    r.onsuccess = e => { this.db = e.target.result; resolve(); };
+                    r.onerror = () => resolve(); 
                 });
             },
-            savePlaylist(playlist) {
-                return new Promise((resolve, reject) => {
-                    if (!this.db) return reject("DB not initialized");
-                    const transaction = this.db.transaction(['playlist'], 'readwrite');
-                    const store = transaction.objectStore('playlist');
-                    const clearRequest = store.clear();
-                    clearRequest.onsuccess = () => {
-                        playlist.forEach(track => { store.add({ file: track.file }); });
-                    };
-                    transaction.oncomplete = () => resolve();
-                    transaction.onerror = (event) => reject(event.target.error);
-                });
+            save(playlist) {
+                if (!this.db) return;
+                const tx = this.db.transaction('tracks', 'readwrite');
+                tx.objectStore('tracks').clear();
+                playlist.forEach(t => tx.objectStore('tracks').add({ file: t.file }));
             },
-            getPlaylist() {
-                return new Promise((resolve, reject) => {
-                    if (!this.db) return reject("DB not initialized");
-                    const transaction = this.db.transaction(['playlist'], 'readonly');
-                    const store = transaction.objectStore('playlist');
-                    const request = store.getAll();
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = (event) => reject(event.target.error);
+            load() {
+                return new Promise(resolve => {
+                    if (!this.db) return resolve([]);
+                    const r = this.db.transaction('tracks', 'readonly').objectStore('tracks').getAll();
+                    r.onsuccess = () => resolve(r.result.map(i => i.file));
+                    r.onerror = () => resolve([]);
                 });
             }
         };
 
+        // --- 2. PLAYER LOGIC ---
         class NexusPlayer {
             constructor() {
-                this.audioEl = new Audio();
-                this.videoEl = document.getElementById('video-element');
-                this.activeMedia = this.audioEl;
-                
+                this.audio = new Audio();
                 this.audioCtx = null;
-                this.nodes = {};
                 this.playlist = [];
-                this.currentIndex = 0;
-                this.hasImploded = false;
-
+                this.index = 0;
+                this.analyser = null;
+                
                 this.ui = {
-                    playBtn: document.getElementById('btn-play'),
-                    nextBtn: document.getElementById('btn-next'),
-                    prevBtn: document.getElementById('btn-prev'),
-                    playIcon: document.querySelector('#btn-play i'),
-                    seek: document.getElementById('seek-slider'),
-                    bass: document.getElementById('bass-slider'),
-                    bassVal: document.getElementById('bass-val'),
-                    currTime: document.getElementById('curr-time'),
-                    durTime: document.getElementById('dur-time'),
-                    fileIn: document.getElementById('file-input'),
                     title: document.getElementById('title-display'),
                     artist: document.getElementById('artist-display'),
                     cover: document.getElementById('cover-img'),
+                    playBtn: document.getElementById('btn-play'),
+                    seek: document.getElementById('seek-slider'),
+                    curr: document.getElementById('curr-time'),
+                    dur: document.getElementById('dur-time'),
+                    list: document.getElementById('playlist'),
                     canvas: document.getElementById('visualizer'),
-                    playlist: document.getElementById('playlist'),
-                    shell: document.querySelector('.nexus-shell'),
-                    overlay: document.getElementById('secret-overlay')
+                    overlay: document.getElementById('secret-overlay'),
+                    sqBg: document.getElementById('sq-bg'),
+                    sqProg: document.getElementById('sq-prog')
                 };
-                this.accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+
+                this.generateSquiggle(); 
             }
 
             async init() {
-                this.ctx = this.ui.canvas.getContext('2d', { alpha: false });
+                await DB.init();
                 this.setupEvents();
-                await this.loadPlaylistFromDB();
-                this.loadPlaybackState();
-                this.resize();
-                window.addEventListener('resize', () => this.resize());
+                const files = await DB.load();
+                if(files.length) this.addFiles(files);
+                this.loop();
             }
 
-            initAudioEngine() {
-                if (this.audioCtx) return;
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                this.audioCtx = new AudioContext({ latencyHint: 'playback' });
-                this.nodes.audioSrc = this.audioCtx.createMediaElementSource(this.audioEl);
-                this.nodes.videoSrc = this.audioCtx.createMediaElementSource(this.videoEl);
-                this.nodes.bassShelf = this.audioCtx.createBiquadFilter();
-                this.nodes.bassShelf.type = 'lowshelf';
-                this.nodes.bassShelf.frequency.value = 100;
-                this.nodes.bassPunch = this.audioCtx.createBiquadFilter();
-                this.nodes.bassPunch.type = 'peaking';
-                this.nodes.bassPunch.frequency.value = 60;
-                this.nodes.bassPunch.Q.value = 1.5;
-                this.nodes.compressor = this.audioCtx.createDynamicsCompressor();
-                this.nodes.compressor.threshold.setValueAtTime(-24, this.audioCtx.currentTime);
-                this.nodes.compressor.knee.setValueAtTime(30, this.audioCtx.currentTime);
-                this.nodes.compressor.ratio.setValueAtTime(12, this.audioCtx.currentTime);
-                this.nodes.compressor.attack.setValueAtTime(0, this.audioCtx.currentTime);
-                this.nodes.compressor.release.setValueAtTime(0.25, this.audioCtx.currentTime);
-                this.nodes.analyser = this.audioCtx.createAnalyser();
-                this.nodes.analyser.fftSize = 512;
-                this.nodes.analyser.smoothingTimeConstant = 0.8;
-                this.nodes.bassShelf.connect(this.nodes.bassPunch);
-                this.nodes.bassPunch.connect(this.nodes.compressor);
-                this.nodes.compressor.connect(this.nodes.analyser);
-                this.nodes.analyser.connect(this.audioCtx.destination);
-                this.routeSource();
-                this.draw();
-            }
-
-            routeSource() {
-                if (!this.audioCtx) return;
-                this.nodes.audioSrc.disconnect();
-                this.nodes.videoSrc.disconnect();
-                const currentSource = (this.activeMedia === this.videoEl) ? this.nodes.videoSrc : this.nodes.audioSrc;
-                currentSource.connect(this.nodes.bassShelf);
+            generateSquiggle() {
+                const width = 300;
+                const height = 40;
+                const amp = 10;
+                const freq = 0.1;
+                let path = \`M 0 \${height/2} \`;
+                for (let x = 0; x <= width; x++) {
+                    const y = (height/2) + (Math.sin(x * freq) * amp);
+                    path += \`L \${x} \${y} \`;
+                }
+                this.ui.sqBg.setAttribute('d', path);
+                this.ui.sqProg.setAttribute('d', path);
+                
+                this.pathLength = this.ui.sqBg.getTotalLength();
+                this.ui.sqProg.style.strokeDasharray = this.pathLength;
+                this.ui.sqProg.style.strokeDashoffset = this.pathLength; 
             }
 
             setupEvents() {
-                this.ui.playBtn.onclick = () => this.toggle();
-                this.ui.nextBtn.onclick = () => this.next();
-                this.ui.prevBtn.onclick = () => this.prev();
-                this.ui.fileIn.onchange = (e) => this.loadFiles(e.target.files);
-                this.audioEl.onended = () => this.next();
-                this.videoEl.onended = () => this.next();
+                document.getElementById('file-input').onchange = (e) => this.addFiles(Array.from(e.target.files));
+                
+                this.ui.playBtn.onclick = () => {
+                    if(this.audio.paused) { 
+                        this.initAudioContext(); 
+                        this.audio.play(); 
+                        this.ui.playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                    } else { 
+                        this.audio.pause(); 
+                        this.ui.playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                    }
+                };
+
+                document.getElementById('btn-next').onclick = () => this.next();
+                document.getElementById('btn-prev').onclick = () => this.prev();
+                
+                this.audio.onended = () => this.next();
+                this.audio.ontimeupdate = () => this.updateProgress();
                 
                 this.ui.seek.oninput = (e) => {
-                    const time = (e.target.value / 1000) * this.activeMedia.duration;
-                    if(isFinite(time)) this.activeMedia.currentTime = time;
-                };
-
-                this.ui.bass.oninput = (e) => {
                     const val = e.target.value;
-                    this.ui.bassVal.innerText = \`\${val}%\`;
-                    if (this.nodes.bassShelf) {
-                        this.nodes.bassShelf.gain.setTargetAtTime(val * 0.15, this.audioCtx.currentTime, 0.1);
-                        this.nodes.bassPunch.gain.setTargetAtTime(val * 0.1, this.audioCtx.currentTime, 0.1);
-                    }
+                    const duration = this.audio.duration;
+                    if(duration) this.audio.currentTime = (val / 1000) * duration;
                 };
 
-                const update = () => {
-                    if (!this.activeMedia.paused && isFinite(this.activeMedia.duration)) {
-                        const p = (this.activeMedia.currentTime / this.activeMedia.duration) * 1000;
-                        this.ui.seek.value = p || 0;
-                        this.ui.currTime.innerText = this.format(this.activeMedia.currentTime);
-                        this.ui.durTime.innerText = this.format(this.activeMedia.duration);
-                        this.savePlaybackState();
-                    }
-                    requestAnimationFrame(update);
-                };
-                update();
+                window.onresize = () => this.resizeCanvas();
             }
 
-            async loadFiles(files) {
-                if (!files.length) return;
-                this.initAudioEngine();
-                this.playlist.forEach(track => URL.revokeObjectURL(track.url));
-                this.playlist = [];
-                for (const file of files) {
+            initAudioContext() {
+                if(this.audioCtx) return;
+                const AC = window.AudioContext || window.webkitAudioContext;
+                this.audioCtx = new AC();
+                const src = this.audioCtx.createMediaElementSource(this.audio);
+                this.analyser = this.audioCtx.createAnalyser();
+                this.analyser.fftSize = 256;
+                src.connect(this.analyser);
+                this.analyser.connect(this.audioCtx.destination);
+                this.resizeCanvas();
+            }
+
+            async addFiles(files) {
+                if(!files.length) return;
+                const startIdx = this.playlist.length;
+                
+                for(let file of files) {
+                    const meta = await this.readMetadata(file);
                     this.playlist.push({
                         file: file,
                         url: URL.createObjectURL(file),
-                        title: file.name,
-                        artist: "Loading...",
-                        cover: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+                        title: meta.title || file.name.replace(/\\.[^/.]+$/, ""),
+                        artist: meta.artist || "Unknown Artist",
+                        cover: meta.cover || "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                     });
                 }
-                await DB.savePlaylist(this.playlist);
-                this.renderPlaylist();
-                this.playTrack(0);
                 
-                // Process metadata after UI update
-                this.playlist.forEach((track, index) => this.getTags(track.file, index));
+                DB.save(this.playlist);
+                this.renderPlaylist();
+                if(startIdx === 0) this.loadTrack(0);
             }
 
-            async loadPlaylistFromDB() {
-                const savedTracks = await DB.getPlaylist();
-                if (savedTracks && savedTracks.length > 0) {
-                    this.playlist = savedTracks.map(trackData => {
-                        const file = trackData.file;
-                        return {
-                            file: file,
-                            url: URL.createObjectURL(file),
-                            title: file.name,
-                            artist: "Loading...",
-                            cover: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+            readMetadata(file) {
+                return new Promise((resolve) => {
+                    if(typeof jsmediatags === 'undefined') {
+                        resolve({}); 
+                        return;
+                    }
+
+                    jsmediatags.read(file, {
+                        onSuccess: (tag) => {
+                            let cover = null;
+                            const tags = tag.tags;
+                            if (tags.picture) {
+                                const data = tags.picture.data;
+                                const format = tags.picture.format;
+                                let base64String = "";
+                                for (let i = 0; i < data.length; i++) {
+                                    base64String += String.fromCharCode(data[i]);
+                                }
+                                cover = \`data:\${format};base64,\${window.btoa(base64String)}\`;
+                            }
+                            resolve({
+                                title: tags.title,
+                                artist: tags.artist,
+                                cover: cover
+                            });
+                        },
+                        onError: (error) => {
+                            console.log(error);
+                            resolve({});
                         }
                     });
-                    this.renderPlaylist();
-                    this.updateUI(this.playlist[this.currentIndex]);
-                    this.playlist.forEach((track, index) => this.getTags(track.file, index));
-                }
-            }
-
-            savePlaybackState() {
-                if (!this.playlist.length) return;
-                const state = { currentIndex: this.currentIndex, currentTime: this.activeMedia.currentTime };
-                localStorage.setItem('nexus_player_state', JSON.stringify(state));
-            }
-
-            loadPlaybackState() {
-                const stateJSON = localStorage.getItem('nexus_player_state');
-                if (stateJSON && this.playlist.length > 0) {
-                    const state = JSON.parse(stateJSON);
-                    this.currentIndex = state.currentIndex < this.playlist.length ? state.currentIndex : 0;
-
-                    const track = this.playlist[this.currentIndex];
-                    if(!track) return;
-
-                    const isVideo = track.file.type.startsWith('video');
-                    this.activeMedia = isVideo ? this.videoEl : this.audioEl;
-                    this.videoEl.style.display = isVideo ? 'block' : 'none';
-                    this.ui.cover.style.display = isVideo ? 'none' : 'block';
-                    this.activeMedia.src = track.url;
-
-                    this.activeMedia.onloadedmetadata = () => {
-                        this.activeMedia.currentTime = state.currentTime;
-                        this.updateUI(track);
-                        this.renderPlaylist();
-                        this.activeMedia.onloadedmetadata = null;
-                    };
-                }
-            }
-
-            playTrack(index) {
-                if (index < 0 || index >= this.playlist.length) return;
-                this.currentIndex = index;
-                const track = this.playlist[index];
-                
-                const isVideo = track.file.type.startsWith('video');
-                this.activeMedia = isVideo ? this.videoEl : this.audioEl;
-                
-                this.videoEl.style.display = isVideo ? 'block' : 'none';
-                this.ui.cover.style.display = isVideo ? 'none' : 'block';
-                
-                this.audioEl.pause(); this.videoEl.pause();
-                this.activeMedia.src = track.url;
-                
-                this.initAudioEngine();
-                this.routeSource();
-                this.updateUI(track);
-                
-                this.activeMedia.play().then(() => {
-                    this.ui.playIcon.className = 'fas fa-pause';
-                }).catch(e => console.error("Playback Error:", e));
-
-                this.renderPlaylist();
-            }
-
-            updateUI(track) {
-                if (!track) return;
-                this.ui.title.innerText = track.title;
-                this.ui.artist.innerText = track.artist;
-                this.ui.cover.src = track.cover;
-
-                // --- EASTER EGG PROTOCOL ---
-                const artistLower = track.artist.toLowerCase();
-                if (artistLower.includes('twenty one pilots') || artistLower.includes('twentyonepilots')) {
-                    this.triggerEasterEgg();
-                }
-            }
-
-            triggerEasterEgg() {
-                if(this.hasImploded) return;
-                this.hasImploded = true;
-                
-                // Add blackhole effect
-                this.ui.shell.classList.add('black-hole-anim');
-                
-                // Fade in text after implosion starts
-                setTimeout(() => {
-                    this.ui.overlay.style.opacity = 1;
-                }, 1500);
-
-                // Wait, then reset
-                setTimeout(() => {
-                    this.ui.overlay.style.opacity = 0;
-                    this.ui.shell.classList.remove('black-hole-anim');
-                    this.ui.shell.classList.add('big-bang-anim');
-                    
-                    setTimeout(() => {
-                        this.ui.shell.classList.remove('big-bang-anim');
-                        this.hasImploded = false; 
-                    }, 1000);
-                }, 4000);
-            }
-
-            renderPlaylist() {
-                this.ui.playlist.innerHTML = '';
-                this.playlist.forEach((track, index) => {
-                    const li = document.createElement('li');
-                    li.className = 'playlist-item';
-                    if (index === this.currentIndex) li.classList.add('playing');
-                    li.innerHTML = \`<span class="track-num">\${index + 1}</span><div><div class="track-title">\${track.title}</div><div class="track-artist">\${track.artist}</div></div>\`;
-                    li.onclick = () => this.playTrack(index);
-                    this.ui.playlist.appendChild(li);
                 });
             }
 
-            getTags(file, index) {
-                if (window.jsmediatags) {
-                    new window.jsmediatags.Reader(file)
-                    .setTagsToRead(["title", "artist", "picture"])
-                    .read({
-                        onSuccess: (tag) => {
-                            const track = this.playlist[index];
-                            if (!track) return;
-                            
-                            track.title = tag.tags.title || file.name.replace(/\.[^/.]+$/, "");
-                            track.artist = tag.tags.artist || "Unknown Artist";
-                            
-                            if (tag.tags.picture) {
-                                const { data, format } = tag.tags.picture;
-                                let base64 = "";
-                                for (let i = 0; i < data.length; i++) base64 += String.fromCharCode(data[i]);
-                                track.cover = \`data:\${format};base64,\${btoa(base64)}\`;
-                            }
-                            
-                            if (index === this.currentIndex) this.updateUI(track);
-                            this.renderPlaylist();
-                        },
-                        onError: (error) => {
-                            console.log('Error reading tags:', error.type, error.info);
-                            const track = this.playlist[index];
-                            if (!track) return;
-                            track.title = file.name.replace(/\.[^/.]+$/, "");
-                            track.artist = "Unknown Artist";
-                            if (index === this.currentIndex) this.updateUI(track);
-                            this.renderPlaylist();
-                        }
-                    });
+            loadTrack(i) {
+                if(i < 0 || i >= this.playlist.length) return;
+                this.index = i;
+                const track = this.playlist[i];
+                
+                this.audio.src = track.url;
+                this.ui.title.innerText = track.title;
+                this.ui.artist.innerText = track.artist;
+                this.ui.cover.src = track.cover;
+                
+                this.updateActiveItem();
+                
+                if(this.audioCtx) {
+                    this.audio.play();
+                    this.ui.playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                }
+
+                this.checkSecretProtocol(track.artist);
+            }
+
+            checkSecretProtocol(artistName) {
+                const cleanName = (artistName || "").toLowerCase().replace(/\\s/g, '');
+                
+                if (cleanName.includes('twentyonepilots')) {
+                    console.log("PROTOCOL INITIATED");
+                    setTimeout(() => {
+                        document.body.classList.add('imploding');
+                        setTimeout(() => {
+                            this.ui.overlay.style.opacity = '1'; 
+                        }, 2000);
+
+                        setTimeout(() => {
+                            this.ui.overlay.style.opacity = '0';
+                            document.body.classList.remove('imploding');
+                            document.body.classList.add('exploding');
+                            setTimeout(() => {
+                                document.body.classList.remove('exploding');
+                            }, 1000);
+                        }, 4500);
+                    }, 500);
                 }
             }
 
-            toggle() {
-                if (!this.playlist.length) return;
-                this.initAudioEngine();
-                if (this.activeMedia.paused) {
-                    this.activeMedia.play();
-                    this.ui.playIcon.className = 'fas fa-pause';
-                } else {
-                    this.activeMedia.pause();
-                    this.ui.playIcon.className = 'fas fa-play';
-                }
+            next() { this.loadTrack((this.index + 1) % this.playlist.length); }
+            prev() { this.loadTrack((this.index - 1 + this.playlist.length) % this.playlist.length); }
+
+            updateProgress() {
+                const cur = this.audio.currentTime;
+                const dur = this.audio.duration;
+                
+                if(isNaN(dur)) return;
+
+                this.ui.curr.innerText = this.formatTime(cur);
+                this.ui.dur.innerText = this.formatTime(dur);
+                
+                const pct = (cur / dur);
+                this.ui.seek.value = pct * 1000;
+
+                const offset = this.pathLength - (this.pathLength * pct);
+                this.ui.sqProg.style.strokeDashoffset = offset;
             }
 
-            next() {
-                if (!this.playlist.length) return;
-                this.playTrack((this.currentIndex + 1) % this.playlist.length);
-            }
-
-            prev() {
-                if (!this.playlist.length) return;
-                const newIndex = (this.currentIndex - 1 + this.playlist.length) % this.playlist.length;
-                this.playTrack(newIndex);
-            }
-
-            format(s) {
-                if (isNaN(s)) return "0:00";
+            formatTime(s) {
                 const m = Math.floor(s / 60);
-                const sec = Math.floor(s % 60);
-                return \`\${m}:\${sec < 10 ? '0' + sec : sec}\`;
+                const ss = Math.floor(s % 60);
+                return \`\${m}:\${ss < 10 ? '0'+ss : ss}\`;
             }
 
-            resize() {
-                this.ui.canvas.width = this.ui.canvas.offsetWidth * window.devicePixelRatio;
-                this.ui.canvas.height = this.ui.canvas.offsetHeight * window.devicePixelRatio;
+            renderPlaylist() {
+                this.ui.list.innerHTML = '';
+                this.playlist.forEach((t, i) => {
+                    const li = document.createElement('li');
+                    li.className = 'playlist-item' + (i === this.index ? ' playing' : '');
+                    li.innerHTML = \`<div style="font-weight:700; color:var(--accent); width:20px">\${i+1}</div>
+                                    <div>
+                                        <div style="font-weight:600">\${t.title}</div>
+                                        <div style="font-size:0.8rem; color:#888">\${t.artist}</div>
+                                    </div>\`;
+                    li.onclick = () => this.loadTrack(i);
+                    this.ui.list.appendChild(li);
+                });
             }
 
-            draw() {
-                requestAnimationFrame(() => this.draw());
-                if(!this.audioCtx) return;
-                const data = new Uint8Array(this.nodes.analyser.frequencyBinCount);
-                this.nodes.analyser.getByteFrequencyData(data);
+            updateActiveItem() {
+                Array.from(this.ui.list.children).forEach((li, i) => {
+                    if(i === this.index) li.classList.add('playing');
+                    else li.classList.remove('playing');
+                });
+            }
+
+            resizeCanvas() {
+                if(!this.ui.canvas) return;
+                this.ui.canvas.width = this.ui.canvas.offsetWidth;
+                this.ui.canvas.height = this.ui.canvas.offsetHeight;
+            }
+
+            loop() {
+                requestAnimationFrame(() => this.loop());
+                if(!this.analyser || this.audio.paused) return;
+                
+                const ctx = this.ui.canvas.getContext('2d');
                 const w = this.ui.canvas.width;
                 const h = this.ui.canvas.height;
-                this.ctx.fillStyle = '#050505';
-                this.ctx.fillRect(0, 0, w, h);
+                const buffer = new Uint8Array(this.analyser.frequencyBinCount);
+                this.analyser.getByteFrequencyData(buffer);
 
-                const barWidth = (w / data.length) * 1.5;
+                ctx.clearRect(0, 0, w, h);
+                ctx.fillStyle = 'rgba(0, 123, 255, 0.5)';
+                
+                const barWidth = (w / buffer.length) * 2.5;
                 let x = 0;
-
-                // Pre-calculate RGB from hex for performance
-                const r = parseInt(this.accentColor.slice(1, 3), 16);
-                const g = parseInt(this.accentColor.slice(3, 5), 16);
-                const b = parseInt(this.accentColor.slice(5, 7), 16);
-
-                for(let i = 0; i < data.length; i++) {
-                    const barHeight = Math.pow(data[i] / 255, 2.5) * h;
-                    this.ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + (barHeight / h) + ')';
-                    this.ctx.fillRect(x, h - barHeight, barWidth, barHeight);
+                for(let i = 0; i < buffer.length; i++) {
+                    const barHeight = buffer[i] / 2;
+                    ctx.fillRect(x, h - barHeight, barWidth, barHeight);
                     x += barWidth + 1;
                 }
             }
         }
 
-        window.onload = async () => {
-            await DB.init();
+        window.onload = () => {
             const player = new NexusPlayer();
             player.init();
         };
