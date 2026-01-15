@@ -405,7 +405,7 @@
             position: absolute; top: 50%; left: 50%; width: 950px; height: 650px;
             transform: translate(-50%, -50%) scale(0.9); opacity: 0; pointer-events: none;
             background: #000; border-radius: 30px; overflow: hidden;
-            box-shadow: 0 40px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,59,59,0.2);
+            box-shadow: 0 40px 100px rgba(0,0,0,0.8), 0 0 0 1px var(--accent-glow);
             z-index: 9999; display: flex; flex-direction: column; resize: both; min-width: 600px; min-height: 400px;
             transition: opacity 0.4s ease, transform 0.4s var(--fluid);
         }
@@ -417,7 +417,7 @@
         .win-header {
             height: 40px; background: rgba(46, 52, 64, 0.9);
             display: flex; align-items: center; justify-content: space-between;
-            padding: 0 20px; cursor: grab; border-bottom: 1px solid rgba(255, 59, 59, 0.2);
+            padding: 0 20px; cursor: grab; border-bottom: 1px solid var(--accent-glow);
         }
         .win-header:active { cursor: grabbing; }
         .win-title { font-size: 0.8rem; font-weight: 700; color: #eceff4; text-transform: uppercase; letter-spacing: 2px; }
@@ -641,7 +641,7 @@ const musicPlayerHTML = `<!DOCTYPE html>
     <style>
         :root {
             --bg-oled: #050505;
-            --accent-red: #3b82f6;
+            --accent: #3b82f6;
             --accent-glow: rgba(59, 130, 246, 0.5);
             --glass: rgba(20, 20, 20, 0.7);
             --border: rgba(255, 255, 255, 0.1);
@@ -653,8 +653,8 @@ const musicPlayerHTML = `<!DOCTYPE html>
         
         .ambient-glow { 
             position: absolute; width: 100vw; height: 100vh; 
-            background: radial-gradient(circle at 50% 50%, rgba(255, 51, 51, 0.08) 0%, transparent 70%); 
-            z-index: 0; pointer-events: none; 
+            background: radial-gradient(circle at 50% 50%, var(--accent-glow) 0%, transparent 70%);
+            z-index: 0; pointer-events: none; opacity: 0.5;
         }
         
         .nexus-shell {
@@ -665,9 +665,23 @@ const musicPlayerHTML = `<!DOCTYPE html>
             display: flex; overflow: hidden; position: relative; z-index: 10;
         }
 
-        .zone-left { flex: 1.1; padding: 40px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--border); }
-        .zone-right { flex: 0.9; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); }
+        .zone-left { flex: 1; padding: 40px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--border); }
+        .zone-right { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); }
         
+        /* PLAYLIST STYLING */
+        .playlist-header { font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); padding: 0 30px 15px 30px; border-bottom: 1px solid var(--border); }
+        #playlist { list-style: none; overflow-y: auto; flex: 1; }
+        .playlist-item {
+            display: flex; align-items: center; gap: 15px; padding: 15px 30px;
+            cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: background 0.2s;
+        }
+        .playlist-item:hover { background: rgba(255,255,255,0.05); }
+        .playlist-item.playing { background: var(--accent-glow); }
+        .playlist-item .track-num { font-size: 0.8rem; color: var(--text-dim); font-weight: 700; }
+        .playlist-item .track-title { font-weight: 600; color: var(--text); }
+        .playlist-item .track-artist { font-size: 0.8rem; color: var(--text-dim); }
+
         .art-wrapper { 
             width: 100%; aspect-ratio: 1/1; border-radius: 16px; overflow: hidden; 
             box-shadow: 0 25px 60px rgba(0,0,0,0.8); position: relative; 
@@ -679,34 +693,34 @@ const musicPlayerHTML = `<!DOCTYPE html>
 
         .track-info { margin-top: 25px; }
         .track-title { font-size: 2.2rem; font-weight: 800; letter-spacing: -1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .track-artist { font-size: 1rem; color: var(--accent-red); font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; }
+        .track-artist { font-size: 1rem; color: var(--accent); font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; }
         
         .controls-stack { margin-top: auto; display: flex; flex-direction: column; gap: 20px; }
         
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; height: 20px; cursor: pointer; }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: var(--accent-red); margin-top: -5px; box-shadow: 0 0 12px var(--accent-glow); transition: 0.2s; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: var(--accent); margin-top: -5px; box-shadow: 0 0 12px var(--accent-glow); transition: 0.2s; }
         input[type=range]:active::-webkit-slider-thumb { transform: scale(1.3); }
         
         .time-display { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-dim); font-family: 'Monaco', monospace; margin-top: 6px; }
         
         .main-buttons { display: flex; justify-content: center; align-items: center; gap: 35px; }
         .btn { background: none; border: none; color: var(--text); font-size: 1.4rem; cursor: pointer; transition: 0.3s; opacity: 0.8; }
-        .btn:hover { color: var(--accent-red); opacity: 1; transform: scale(1.1); }
-        .btn-play { width: 65px; height: 65px; border-radius: 50%; background: var(--accent-red); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; opacity: 1; box-shadow: 0 10px 25px var(--accent-glow); }
+        .btn:hover { color: var(--accent); opacity: 1; transform: scale(1.1); }
+        .btn-play { width: 65px; height: 65px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; opacity: 1; box-shadow: 0 10px 25px var(--accent-glow); }
         
         .bass-module { background: rgba(255,255,255,0.03); border-radius: 14px; padding: 18px; border: 1px solid var(--border); }
         .bass-header { display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; color: var(--text-dim); }
         
         .header-bar { padding: 30px; display: flex; justify-content: space-between; align-items: center; }
         .brand { font-weight: 900; letter-spacing: 3px; font-size: 1.1rem; }
-        .brand span { color: var(--accent-red); }
+        .brand span { color: var(--accent); }
         
-        .file-upload-label { background: var(--accent-red); color: white; padding: 10px 22px; border-radius: 30px; font-size: 0.75rem; cursor: pointer; transition: 0.3s; font-weight: 700; box-shadow: 0 5px 15px var(--accent-glow); }
+        .file-upload-label { background: var(--accent); color: white; padding: 10px 22px; border-radius: 30px; font-size: 0.75rem; cursor: pointer; transition: 0.3s; font-weight: 700; box-shadow: 0 5px 15px var(--accent-glow); }
         .file-upload-label:hover { transform: translateY(-2px); filter: brightness(1.1); }
         #file-input { display: none; }
         
-        #visualizer { width: 100%; height: 100%; flex: 1; }
+        #visualizer { width: 100%; height: 150px; flex: none; }
     </style>
 </head>
 <body>
@@ -732,7 +746,7 @@ const musicPlayerHTML = `<!DOCTYPE html>
                     <div class="time-display"><span id="curr-time">0:00</span><span id="dur-time">0:00</span></div>
                 </div>
                 <div class="bass-module">
-                    <div class="bass-header"><span>Sub-Bass Enhancement</span><span id="bass-val" style="color:var(--accent-red)">0%</span></div>
+                    <div class="bass-header"><span>Sub-Bass Enhancement</span><span id="bass-val" style="color:var(--accent)">0%</span></div>
                     <input type="range" id="bass-slider" min="0" max="100" value="0">
                 </div>
             </div>
@@ -741,13 +755,49 @@ const musicPlayerHTML = `<!DOCTYPE html>
             <div class="header-bar">
                 <div class="brand">NEXUS<span>STUDIO</span></div>
                 <label for="file-input" class="file-upload-label"><i class="fas fa-plus"></i> ADD MEDIA</label>
-                <input type="file" id="file-input" accept="audio/*, video/*">
+                <input type="file" id="file-input" accept="audio/*, video/*" multiple>
             </div>
+            <div class="playlist-header">UP NEXT</div>
+            <ul id="playlist"></ul>
             <canvas id="visualizer"></canvas>
         </div>
     </div>
 
     <script>
+        const DB = {
+            DB_NAME: 'NexusPlayerDB',
+            STORE_NAME: 'playlist',
+            db: null,
+            async open() {
+                return new Promise((resolve, reject) => {
+                    if (this.db) return resolve(this.db);
+                    const req = indexedDB.open(this.DB_NAME, 1);
+                    req.onupgradeneeded = e => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(this.STORE_NAME)) {
+                            db.createObjectStore(this.STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                        }
+                    };
+                    req.onsuccess = e => { this.db = e.target.result; resolve(this.db); };
+                    req.onerror = e => { console.error("DB Error:", e.target.error); reject(e.target.error); };
+                });
+            },
+            async savePlaylist(playlist) {
+                const db = await this.open();
+                const tx = db.transaction(this.STORE_NAME, 'readwrite');
+                const store = tx.objectStore(this.STORE_NAME);
+                await store.clear();
+                playlist.forEach(track => store.add({ file: track.file }));
+                return tx.complete;
+            },
+            async getPlaylist() {
+                const db = await this.open();
+                return new Promise(resolve => {
+                    db.transaction(this.STORE_NAME).objectStore(this.STORE_NAME).getAll().onsuccess = e => resolve(e.target.result);
+                });
+            }
+        };
+
         class NexusPlayer {
             constructor() {
                 this.audioEl = new Audio();
@@ -755,10 +805,14 @@ const musicPlayerHTML = `<!DOCTYPE html>
                 this.activeMedia = this.audioEl;
                 
                 this.audioCtx = null;
-                this.nodes = {}; // Store audio nodes
-                
+                this.nodes = {};
+                this.playlist = [];
+                this.currentIndex = 0;
+
                 this.ui = {
                     playBtn: document.getElementById('btn-play'),
+                    nextBtn: document.getElementById('btn-next'),
+                    prevBtn: document.getElementById('btn-prev'),
                     playIcon: document.querySelector('#btn-play i'),
                     seek: document.getElementById('seek-slider'),
                     bass: document.getElementById('bass-slider'),
@@ -769,58 +823,53 @@ const musicPlayerHTML = `<!DOCTYPE html>
                     title: document.getElementById('title-display'),
                     artist: document.getElementById('artist-display'),
                     cover: document.getElementById('cover-img'),
-                    canvas: document.getElementById('visualizer')
+                    canvas: document.getElementById('visualizer'),
+                    playlist: document.getElementById('playlist')
                 };
-                
+                this.accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent');
+            }
+
+            async init() {
                 this.ctx = this.ui.canvas.getContext('2d', { alpha: false });
                 this.setupEvents();
+                await this.loadPlaylistFromDB();
+                this.loadPlaybackState();
                 this.resize();
                 window.addEventListener('resize', () => this.resize());
             }
 
             initAudioEngine() {
                 if (this.audioCtx) return;
-
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 this.audioCtx = new AudioContext({ latencyHint: 'playback' });
-
-                // Create Nodes
                 this.nodes.audioSrc = this.audioCtx.createMediaElementSource(this.audioEl);
                 this.nodes.videoSrc = this.audioCtx.createMediaElementSource(this.videoEl);
-                
-                // Bass Chain: LowShelf (Sub) + Peaking (Punch)
                 this.nodes.bassShelf = this.audioCtx.createBiquadFilter();
                 this.nodes.bassShelf.type = 'lowshelf';
                 this.nodes.bassShelf.frequency.value = 100;
-
                 this.nodes.bassPunch = this.audioCtx.createBiquadFilter();
                 this.nodes.bassPunch.type = 'peaking';
                 this.nodes.bassPunch.frequency.value = 60;
                 this.nodes.bassPunch.Q.value = 1.5;
-
-                // Audio Quality: Dynamics Compressor (Makes sound "thick" and prevents distortion)
                 this.nodes.compressor = this.audioCtx.createDynamicsCompressor();
                 this.nodes.compressor.threshold.setValueAtTime(-24, this.audioCtx.currentTime);
                 this.nodes.compressor.knee.setValueAtTime(30, this.audioCtx.currentTime);
                 this.nodes.compressor.ratio.setValueAtTime(12, this.audioCtx.currentTime);
                 this.nodes.compressor.attack.setValueAtTime(0, this.audioCtx.currentTime);
                 this.nodes.compressor.release.setValueAtTime(0.25, this.audioCtx.currentTime);
-
                 this.nodes.analyser = this.audioCtx.createAnalyser();
                 this.nodes.analyser.fftSize = 512;
                 this.nodes.analyser.smoothingTimeConstant = 0.8;
-
-                // Final Connection Chain
                 this.nodes.bassShelf.connect(this.nodes.bassPunch);
                 this.nodes.bassPunch.connect(this.nodes.compressor);
                 this.nodes.compressor.connect(this.nodes.analyser);
                 this.nodes.analyser.connect(this.audioCtx.destination);
-
                 this.routeSource();
                 this.draw();
             }
 
             routeSource() {
+                if (!this.audioCtx) return;
                 this.nodes.audioSrc.disconnect();
                 this.nodes.videoSrc.disconnect();
                 const currentSource = (this.activeMedia === this.videoEl) ? this.nodes.videoSrc : this.nodes.audioSrc;
@@ -829,83 +878,182 @@ const musicPlayerHTML = `<!DOCTYPE html>
 
             setupEvents() {
                 this.ui.playBtn.onclick = () => this.toggle();
-                this.ui.fileIn.onchange = (e) => this.load(e.target.files[0]);
+                this.ui.nextBtn.onclick = () => this.next();
+                this.ui.prevBtn.onclick = () => this.prev();
+                this.ui.fileIn.onchange = (e) => this.loadFiles(e.target.files);
+                this.audioEl.onended = () => this.next();
+                this.videoEl.onended = () => this.next();
                 
                 this.ui.seek.oninput = (e) => {
                     const time = (e.target.value / 1000) * this.activeMedia.duration;
-                    this.activeMedia.currentTime = time;
+                    if(isFinite(time)) this.activeMedia.currentTime = time;
                 };
 
                 this.ui.bass.oninput = (e) => {
                     const val = e.target.value;
                     this.ui.bassVal.innerText = \`\${val}%\`;
                     if (this.nodes.bassShelf) {
-                        // Max 15dB boost distributed over two filters for high quality
                         this.nodes.bassShelf.gain.setTargetAtTime(val * 0.15, this.audioCtx.currentTime, 0.1);
                         this.nodes.bassPunch.gain.setTargetAtTime(val * 0.1, this.audioCtx.currentTime, 0.1);
                     }
                 };
 
                 const update = () => {
-                    if (!this.activeMedia.paused) {
+                    if (!this.activeMedia.paused && isFinite(this.activeMedia.duration)) {
                         const p = (this.activeMedia.currentTime / this.activeMedia.duration) * 1000;
                         this.ui.seek.value = p || 0;
                         this.ui.currTime.innerText = this.format(this.activeMedia.currentTime);
                         this.ui.durTime.innerText = this.format(this.activeMedia.duration);
+                        this.savePlaybackState();
                     }
                     requestAnimationFrame(update);
                 };
                 update();
             }
 
-            async load(file) {
-                if (!file) return;
+            async loadFiles(files) {
+                if (!files.length) return;
                 this.initAudioEngine();
+                this.playlist.forEach(track => URL.revokeObjectURL(track.url));
+                this.playlist = [];
+                for (const file of files) {
+                    this.playlist.push({
+                        file: file,
+                        url: URL.createObjectURL(file),
+                        title: file.name,
+                        artist: "Loading...",
+                        cover: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+                    });
+                }
+                await DB.savePlaylist(this.playlist);
+                this.renderPlaylist();
+                this.playTrack(0);
+                this.playlist.forEach((track, index) => this.getTags(track.file, index));
+            }
+
+            async loadPlaylistFromDB() {
+                const savedTracks = await DB.getPlaylist();
+                if (savedTracks && savedTracks.length > 0) {
+                    this.playlist = savedTracks.map(trackData => {
+                        const file = trackData.file;
+                        return {
+                            file: file,
+                            url: URL.createObjectURL(file),
+                            title: file.name,
+                            artist: "Loading...",
+                            cover: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+                        }
+                    });
+                    this.renderPlaylist();
+                    this.updateUI(this.playlist[this.currentIndex]);
+                    this.playlist.forEach((track, index) => this.getTags(track.file, index));
+                }
+            }
+
+            savePlaybackState() {
+                if (!this.playlist.length) return;
+                const state = { currentIndex: this.currentIndex, currentTime: this.activeMedia.currentTime };
+                localStorage.setItem('nexus_player_state', JSON.stringify(state));
+            }
+
+            loadPlaybackState() {
+                const stateJSON = localStorage.getItem('nexus_player_state');
+                if (stateJSON && this.playlist.length > 0) {
+                    const state = JSON.parse(stateJSON);
+                    this.currentIndex = state.currentIndex < this.playlist.length ? state.currentIndex : 0;
+
+                    const track = this.playlist[this.currentIndex];
+                    if(!track) return;
+
+                    const isVideo = track.file.type.startsWith('video');
+                    this.activeMedia = isVideo ? this.videoEl : this.audioEl;
+                    this.videoEl.style.display = isVideo ? 'block' : 'none';
+                    this.ui.cover.style.display = isVideo ? 'none' : 'block';
+                    this.activeMedia.src = track.url;
+
+                    this.activeMedia.onloadedmetadata = () => {
+                        this.activeMedia.currentTime = state.currentTime;
+                        this.updateUI(track);
+                        this.renderPlaylist();
+                        this.activeMedia.onloadedmetadata = null;
+                    };
+                }
+            }
+
+            playTrack(index) {
+                if (index < 0 || index >= this.playlist.length) return;
+                this.currentIndex = index;
+                const track = this.playlist[index];
                 
-                if (this.activeMedia.src) URL.revokeObjectURL(this.activeMedia.src);
-                const url = URL.createObjectURL(file);
-                
-                const isVideo = file.type.startsWith('video');
+                const isVideo = track.file.type.startsWith('video');
                 this.activeMedia = isVideo ? this.videoEl : this.audioEl;
                 
-                // Switch Visibility
                 this.videoEl.style.display = isVideo ? 'block' : 'none';
                 this.ui.cover.style.display = isVideo ? 'none' : 'block';
                 
-                this.audioEl.pause();
-                this.videoEl.pause();
-                this.activeMedia.src = url;
+                this.audioEl.pause(); this.videoEl.pause();
+                this.activeMedia.src = track.url;
+                
+                this.initAudioEngine();
                 this.routeSource();
-                
-                this.ui.title.innerText = file.name;
-                this.ui.artist.innerText = isVideo ? "Video Media" : "Loading Tags...";
-                
-                if (!isVideo) this.getTags(file);
+                this.updateUI(track);
                 
                 this.activeMedia.play().then(() => {
                     this.ui.playIcon.className = 'fas fa-pause';
+                }).catch(e => console.error("Playback Error:", e));
+
+                this.renderPlaylist();
+            }
+
+            updateUI(track) {
+                if (!track) return;
+                this.ui.title.innerText = track.title;
+                this.ui.artist.innerText = track.artist;
+                this.ui.cover.src = track.cover;
+            }
+
+            renderPlaylist() {
+                this.ui.playlist.innerHTML = '';
+                this.playlist.forEach((track, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'playlist-item';
+                    if (index === this.currentIndex) li.classList.add('playing');
+                    li.innerHTML = \`<span class="track-num">\${index + 1}</span><div><div class="track-title">\${track.title}</div><div class="track-artist">\${track.artist}</div></div>\`;
+                    li.onclick = () => this.playTrack(index);
+                    this.ui.playlist.appendChild(li);
                 });
             }
 
-            getTags(file) {
+            getTags(file, index) {
                 if (window.jsmediatags) {
                     window.jsmediatags.read(file, {
                         onSuccess: (tag) => {
-                            this.ui.title.innerText = tag.tags.title || file.name;
-                            this.ui.artist.innerText = tag.tags.artist || "Unknown Artist";
+                            const track = this.playlist[index];
+                            if (!track) return;
+                            track.title = tag.tags.title || file.name;
+                            track.artist = tag.tags.artist || "Unknown Artist";
                             if (tag.tags.picture) {
                                 const { data, format } = tag.tags.picture;
                                 let base64 = "";
                                 for (let i = 0; i < data.length; i++) base64 += String.fromCharCode(data[i]);
-                                this.ui.cover.src = \`data:\${format};base64,\${btoa(base64)}\`;
+                                track.cover = \`data:\${format};base64,\${btoa(base64)}\`;
                             }
+                            if (index === this.currentIndex) this.updateUI(track);
+                            this.renderPlaylist();
                         },
-                        onError: () => { this.ui.artist.innerText = "Local Audio"; }
+                        onError: () => {
+                            const track = this.playlist[index];
+                            if (!track) return;
+                            track.artist = "Local Audio";
+                            if (index === this.currentIndex) this.updateUI(track);
+                            this.renderPlaylist();
+                        }
                     });
                 }
             }
 
             toggle() {
+                if (!this.playlist.length) return;
                 this.initAudioEngine();
                 if (this.activeMedia.paused) {
                     this.activeMedia.play();
@@ -914,6 +1062,17 @@ const musicPlayerHTML = `<!DOCTYPE html>
                     this.activeMedia.pause();
                     this.ui.playIcon.className = 'fas fa-play';
                 }
+            }
+
+            next() {
+                if (!this.playlist.length) return;
+                this.playTrack((this.currentIndex + 1) % this.playlist.length);
+            }
+
+            prev() {
+                if (!this.playlist.length) return;
+                const newIndex = (this.currentIndex - 1 + this.playlist.length) % this.playlist.length;
+                this.playTrack(newIndex);
             }
 
             format(s) {
@@ -930,49 +1089,35 @@ const musicPlayerHTML = `<!DOCTYPE html>
 
             draw() {
                 requestAnimationFrame(() => this.draw());
+                if(!this.audioCtx) return;
                 const data = new Uint8Array(this.nodes.analyser.frequencyBinCount);
                 this.nodes.analyser.getByteFrequencyData(data);
-
                 const w = this.ui.canvas.width;
                 const h = this.ui.canvas.height;
-                const centerX = w / 2;
-                const centerY = h / 2;
-                const radius = Math.min(w, h) * 0.3;
-
                 this.ctx.fillStyle = '#050505';
                 this.ctx.fillRect(0, 0, w, h);
 
-                this.ctx.lineWidth = 4;
-                this.ctx.lineCap = 'round';
+                const barWidth = (w / data.length) * 1.5;
+                let x = 0;
 
-                const barCount = data.length * 0.7; // Use subset of data
+                // Pre-calculate RGB from hex for performance
+                const r = parseInt(this.accentColor.slice(1, 3), 16);
+                const g = parseInt(this.accentColor.slice(3, 5), 16);
+                const b = parseInt(this.accentColor.slice(5, 7), 16);
 
-                for (let i = 0; i < barCount; i++) {
-                    const barHeight = Math.pow(data[i] / 255, 2) * (h * 0.4); // Use pow for more dynamic response
-                    const angle = (i / barCount) * Math.PI * 2;
-
-                    const r = 59;
-                    const g = 130;
-                    const b = 246;
-                    
-                    this.ctx.strokeStyle = \`rgba(\${r}, \${g}, \${b}, \${data[i] / 255})\`;
-                    this.ctx.shadowColor = \`rgba(\${r}, \${g}, \${b}, 0.5)\`;
-                    this.ctx.shadowBlur = 10;
-
-                    const startX = centerX + Math.cos(angle) * radius;
-                    const startY = centerY + Math.sin(angle) * radius;
-                    const endX = centerX + Math.cos(angle) * (radius + barHeight);
-                    const endY = centerY + Math.sin(angle) * (radius + barHeight);
-
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(startX, startY);
-                    this.ctx.lineTo(endX, endY);
-                    this.ctx.stroke();
+                for(let i = 0; i < data.length; i++) {
+                    const barHeight = Math.pow(data[i] / 255, 2.5) * h;
+                    this.ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${barHeight / h})`;
+                    this.ctx.fillRect(x, h - barHeight, barWidth, barHeight);
+                    x += barWidth + 1;
                 }
             }
         }
 
-        window.onload = () => new NexusPlayer();
+        window.onload = () => {
+            const player = new NexusPlayer();
+            player.init();
+        };
     <\/script>
 </body>
 </html>`;
@@ -1480,11 +1625,6 @@ const Notifications = {
         };
 
         window.onload = () => {
-            if(window.innerWidth < 800) {
-                const meta = document.querySelector('meta[name="viewport"]');
-                if(meta) { meta.setAttribute('content', 'width=device-width, initial-scale=0.1'); setTimeout(() => meta.setAttribute('content', 'width=device-width, initial-scale=1.0'), 50); }
-            }
-
             Settings.apply();
             Games.render();
             Todo.render();
