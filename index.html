@@ -741,10 +741,9 @@ const musicPlayerHTML = `<!DOCTYPE html>
             <div class="header-bar">
                 <div class="brand">NEXUS<span>STUDIO</span></div>
                 <label for="file-input" class="file-upload-label"><i class="fas fa-plus"></i> ADD MEDIA</label>
-                <input type="file" id="file-input" accept="audio/*, video/*" multiple>
+                <input type="file" id="file-input" accept="audio/*, video/*">
             </div>
-            <div class="playlist-container" id="playlist"></div>
-            <canvas id="visualizer" style="height: 200px; flex: none;"></canvas>
+            <canvas id="visualizer"></canvas>
         </div>
     </div>
 
@@ -754,9 +753,6 @@ const musicPlayerHTML = `<!DOCTYPE html>
                 this.audioEl = new Audio();
                 this.videoEl = document.getElementById('video-element');
                 this.activeMedia = this.audioEl;
-
-                this.playlist = [];
-                this.currentIndex = -1;
                 
                 this.audioCtx = null;
                 this.nodes = {}; // Store audio nodes
@@ -773,10 +769,7 @@ const musicPlayerHTML = `<!DOCTYPE html>
                     title: document.getElementById('title-display'),
                     artist: document.getElementById('artist-display'),
                     cover: document.getElementById('cover-img'),
-                    canvas: document.getElementById('visualizer'),
-                    playlist: document.getElementById('playlist'),
-                    prevBtn: document.getElementById('btn-prev'),
-                    nextBtn: document.getElementById('btn-next')
+                    canvas: document.getElementById('visualizer')
                 };
                 
                 this.ctx = this.ui.canvas.getContext('2d', { alpha: false });
@@ -836,10 +829,7 @@ const musicPlayerHTML = `<!DOCTYPE html>
 
             setupEvents() {
                 this.ui.playBtn.onclick = () => this.toggle();
-                this.ui.fileIn.onchange = (e) => this.addSongs(e.target.files);
-                this.ui.nextBtn.onclick = () => this.nextTrack();
-                this.ui.prevBtn.onclick = () => this.prevTrack();
-                this.activeMedia.onended = () => this.nextTrack();
+                this.ui.fileIn.onchange = (e) => this.load(e.target.files[0]);
                 
                 this.ui.seek.oninput = (e) => {
                     const time = (e.target.value / 1000) * this.activeMedia.duration;
@@ -868,123 +858,54 @@ const musicPlayerHTML = `<!DOCTYPE html>
                 update();
             }
 
-            nextTrack() {
-                this.playTrack((this.currentIndex + 1) % this.playlist.length);
-            }
-
-            prevTrack() {
-                this.playTrack((this.currentIndex - 1 + this.playlist.length) % this.playlist.length);
-            }
-
-            addSongs(files) {
-                // Revoke any existing object URLs to prevent memory leaks
-                for (const song of this.playlist) {
-                    URL.revokeObjectURL(song.url);
-                }
-                this.playlist = [];
-                this.currentIndex = -1;
-
-                for(let file of files) {
-                    this.playlist.push({
-                        file: file,
-                        url: URL.createObjectURL(file),
-                        title: file.name,
-                        artist: "Loading...",
-                        cover: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                    });
-                }
-                
-                this.renderPlaylist();
-
-                if (this.playlist.length > 0) {
-                    this.playTrack(0);
-                }
-            }
-
-            renderPlaylist() {
-                this.ui.playlist.innerHTML = "";
-                this.playlist.forEach((song, index) => {
-                    const item = document.createElement('div');
-                    item.className = 'playlist-item';
-                    item.textContent = song.title;
-                    if (index === this.currentIndex) {
-                        item.classList.add('active');
-                    }
-                    item.onclick = () => this.playTrack(index);
-                    this.ui.playlist.appendChild(item);
-                });
-            }
-
-            playTrack(index) {
-                if (index < 0 || index >= this.playlist.length) return;
-
-                this.currentIndex = index;
-                const song = this.playlist[index];
-                const file = song.file;
-
+            async load(file) {
+                if (!file) return;
                 this.initAudioEngine();
+                
+                if (this.activeMedia.src) URL.revokeObjectURL(this.activeMedia.src);
+                const url = URL.createObjectURL(file);
                 
                 const isVideo = file.type.startsWith('video');
                 this.activeMedia = isVideo ? this.videoEl : this.audioEl;
                 
+                // Switch Visibility
                 this.videoEl.style.display = isVideo ? 'block' : 'none';
                 this.ui.cover.style.display = isVideo ? 'none' : 'block';
                 
                 this.audioEl.pause();
                 this.videoEl.pause();
-                this.activeMedia.src = song.url;
+                this.activeMedia.src = url;
                 this.routeSource();
                 
-                this.ui.title.innerText = song.title;
-                this.ui.artist.innerText = song.artist;
-                this.ui.cover.src = song.cover;
+                this.ui.title.innerText = file.name;
+                this.ui.artist.innerText = isVideo ? "Video Media" : "Loading Tags...";
                 
-                if (!isVideo && song.artist === "Loading...") {
-                    this.getTags(file, index);
-                }
+                if (!isVideo) this.getTags(file);
                 
                 this.activeMedia.play().then(() => {
                     this.ui.playIcon.className = 'fas fa-pause';
                 });
-
-                this.renderPlaylist();
             }
 
-            getTags(file, index) {
+            getTags(file) {
                 if (window.jsmediatags) {
                     window.jsmediatags.read(file, {
                         onSuccess: (tag) => {
-                            const song = this.playlist[index];
-                            song.title = tag.tags.title || file.name;
-                            song.artist = tag.tags.artist || "Unknown Artist";
+                            this.ui.title.innerText = tag.tags.title || file.name;
+                            this.ui.artist.innerText = tag.tags.artist || "Unknown Artist";
                             if (tag.tags.picture) {
                                 const { data, format } = tag.tags.picture;
                                 let base64 = "";
                                 for (let i = 0; i < data.length; i++) base64 += String.fromCharCode(data[i]);
-                                song.cover = `data:${format};base64,${btoa(base64)}`;
+                                this.ui.cover.src = \`data:\${format};base64,\${btoa(base64)}\`;
                             }
-                            if(index === this.currentIndex) {
-                                this.ui.title.innerText = song.title;
-                                this.ui.artist.innerText = song.artist;
-                                this.ui.cover.src = song.cover;
-                            }
-                            this.renderPlaylist();
                         },
-                        onError: () => {
-                            this.playlist[index].artist = "Local Audio";
-                            if(index === this.currentIndex) {
-                                this.ui.artist.innerText = "Local Audio";
-                            }
-                        }
+                        onError: () => { this.ui.artist.innerText = "Local Audio"; }
                     });
                 }
             }
 
             toggle() {
-                if (this.playlist.length === 0) {
-                    this.ui.fileIn.click();
-                    return;
-                }
                 this.initAudioEngine();
                 if (this.activeMedia.paused) {
                     this.activeMedia.play();
