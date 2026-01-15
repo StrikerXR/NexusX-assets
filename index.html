@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusOS 12.2</title>
+    <title>NexusOS 12.3</title>
     <link id="favicon" rel="icon" href="https://www.google.com/favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
     <!-- MARKED.JS FOR MARKDOWN PARSING -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" integrity="sha384-HclB2SD9QOPR/M9cdI/2v6f/6J/T/iJj8f0fG49MVIvM+yI/EwI1N/Z2n8wNmnk3" crossorigin="anonymous"></script>
     <style>
         :root {
             /* --- THEME VARIABLES --- */
@@ -636,13 +636,13 @@ const musicPlayerHTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"><\/script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js" integrity="sha512-bF7d8F/63Q1/T8e/4Q8pW2/a2S3T1K3e/2T7h/lGuIO/ynmN+p159D/3f2G/t1OKe/h/M+X/G4H2n2/r8/08g==" crossorigin="anonymous" referrerpolicy="no-referrer"><\/script>
     <style>
         :root {
             --bg-oled: #050505;
-            --accent-red: #ff3333;
-            --accent-glow: rgba(255, 51, 51, 0.4);
+            --accent-red: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
             --glass: rgba(20, 20, 20, 0.7);
             --border: rgba(255, 255, 255, 0.1);
             --text: #ffffff;
@@ -802,8 +802,8 @@ const musicPlayerHTML = `<!DOCTYPE html>
                 this.nodes.compressor = this.audioCtx.createDynamicsCompressor();
                 this.nodes.compressor.threshold.setValueAtTime(-24, this.audioCtx.currentTime);
                 this.nodes.compressor.knee.setValueAtTime(30, this.audioCtx.currentTime);
-                this.nodes.compressor.ratio.setValueAtTime(3, this.audioCtx.currentTime);
-                this.nodes.compressor.attack.setValueAtTime(0.003, this.audioCtx.currentTime);
+                this.nodes.compressor.ratio.setValueAtTime(12, this.audioCtx.currentTime);
+                this.nodes.compressor.attack.setValueAtTime(0, this.audioCtx.currentTime);
                 this.nodes.compressor.release.setValueAtTime(0.25, this.audioCtx.currentTime);
 
                 this.nodes.analyser = this.audioCtx.createAnalyser();
@@ -841,8 +841,8 @@ const musicPlayerHTML = `<!DOCTYPE html>
                     this.ui.bassVal.innerText = \`\${val}%\`;
                     if (this.nodes.bassShelf) {
                         // Max 15dB boost distributed over two filters for high quality
-                        this.nodes.bassShelf.gain.setTargetAtTime(val * 0.12, this.audioCtx.currentTime, 0.1);
-                        this.nodes.bassPunch.gain.setTargetAtTime(val * 0.08, this.audioCtx.currentTime, 0.1);
+                        this.nodes.bassShelf.gain.setTargetAtTime(val * 0.15, this.audioCtx.currentTime, 0.1);
+                        this.nodes.bassPunch.gain.setTargetAtTime(val * 0.1, this.audioCtx.currentTime, 0.1);
                     }
                 };
 
@@ -935,28 +935,39 @@ const musicPlayerHTML = `<!DOCTYPE html>
 
                 const w = this.ui.canvas.width;
                 const h = this.ui.canvas.height;
+                const centerX = w / 2;
+                const centerY = h / 2;
+                const radius = Math.min(w, h) * 0.3;
+
                 this.ctx.fillStyle = '#050505';
                 this.ctx.fillRect(0, 0, w, h);
 
-                const barWidth = (w / data.length) * 2.5;
-                let x = 0;
+                this.ctx.lineWidth = 4;
+                this.ctx.lineCap = 'round';
 
-                for (let i = 0; i < data.length; i++) {
-                    const barHeight = (data[i] / 255) * h * 0.8;
-                    const r = 255;
-                    const g = 51;
-                    const b = 51;
+                const barCount = data.length * 0.7; // Use subset of data
 
-                    this.ctx.fillStyle = \`rgba(\${r}, \${g}, \${b}, \${data[i] / 255})\`;
-                    this.ctx.shadowBlur = 15;
-                    this.ctx.shadowColor = 'rgba(255, 51, 51, 0.5)';
+                for (let i = 0; i < barCount; i++) {
+                    const barHeight = Math.pow(data[i] / 255, 2) * (h * 0.4); // Use pow for more dynamic response
+                    const angle = (i / barCount) * Math.PI * 2;
+
+                    const r = 59;
+                    const g = 130;
+                    const b = 246;
                     
-                    // Rounded top bars
-                    this.ctx.beginPath();
-                    this.ctx.roundRect(x, h - barHeight, barWidth - 4, barHeight, [10, 10, 0, 0]);
-                    this.ctx.fill();
+                    this.ctx.strokeStyle = \`rgba(\${r}, \${g}, \${b}, \${data[i] / 255})\`;
+                    this.ctx.shadowColor = \`rgba(\${r}, \${g}, \${b}, 0.5)\`;
+                    this.ctx.shadowBlur = 10;
 
-                    x += barWidth;
+                    const startX = centerX + Math.cos(angle) * radius;
+                    const startY = centerY + Math.sin(angle) * radius;
+                    const endX = centerX + Math.cos(angle) * (radius + barHeight);
+                    const endY = centerY + Math.sin(angle) * (radius + barHeight);
+
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(startX, startY);
+                    this.ctx.lineTo(endX, endY);
+                    this.ctx.stroke();
                 }
             }
         }
@@ -1100,6 +1111,16 @@ const Notifications = {
                 const content = document.getElementById('notif-content');
                 content.innerHTML = '<div class="notif-loading">Checking for updates...</div>';
                 
+                const CACHE_KEY = 'nx_notif_cache';
+                const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+
+                const cachedData = JSON.parse(localStorage.getItem(CACHE_KEY));
+                if (cachedData && (Date.now() - cachedData.timestamp < CACHE_DURATION)) {
+                    content.innerHTML = `<div class="notif-card">${cachedData.html}</div>`;
+                    Notifications.loaded = true;
+                    return;
+                }
+
                 // Using AllOrigins Proxy to bypass CORS restrictions
                 const proxyUrl = 'https://api.allorigins.win/raw?url=';
                 const targetUrl = 'https://pastebin.com/raw/6zCTDTmj';
@@ -1110,17 +1131,21 @@ const Notifications = {
                         return r.text();
                     })
                     .then(text => {
-                        // Use marked.js (already included in your head) to parse the markdown
                         const html = marked.parse(text);
                         content.innerHTML = `<div class="notif-card">${html}</div>`;
+                        localStorage.setItem(CACHE_KEY, JSON.stringify({ html, timestamp: Date.now() }));
                         Notifications.loaded = true;
                     })
                     .catch(e => {
                         console.error("Notif Error:", e);
-                        content.innerHTML = `<div class="notif-card" style="color:#ef4444">
-                            <strong>Fetch Error:</strong><br>
-                            Failed to load notifications. This is usually due to temporary proxy downtime or connection issues.
-                        </div>`;
+                        if (cachedData) { // Fallback to stale cache on error
+                            content.innerHTML = `<div class="notif-card">${cachedData.html}</div>`;
+                        } else {
+                            content.innerHTML = `<div class="notif-card" style="color:#ef4444">
+                                <strong>Fetch Error:</strong><br>
+                                Failed to load notifications. This is usually due to temporary proxy downtime or connection issues.
+                            </div>`;
+                        }
                     });
             },
             pushLocal: (title, msg) => {
@@ -1346,9 +1371,15 @@ const Notifications = {
                 document.getElementById('ag-img-input-container').style.display = t === 'image' ? 'flex' : 'none';
             },
             save: async () => {
-                const title = document.getElementById('ag-title').value;
-                const url = document.getElementById('ag-url').value;
+                let title = document.getElementById('ag-title').value;
+                let url = document.getElementById('ag-url').value;
+
+                // Basic Sanitization
+                title = title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                url = url.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
                 if(!title || !url) return alert("Required fields missing");
+                if(!url.startsWith('http')) return alert("Please enter a valid URL (http/https).");
 
                 let img = "";
                 if(AddGame.type === 'favicon') {
