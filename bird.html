@@ -4,7 +4,7 @@
    <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
    <title>Sky Glide</title>
-   <script src="https://unpkg.com/lucide@latest"></script>
+   <script src="https://unpkg.com/lucide@0.473.0/dist/umd/lucide.min.js" integrity="sha384-wB13QW3u6twSB0L9C2vdVl+93uSZEWRFrRlHqIjG9jcctrZO+9z145aCi5B8eFWo" crossorigin="anonymous"></script>
    <style>
        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
 
@@ -296,6 +296,14 @@
                 <label for="gold-pipe-rarity">Golden Pipe Rarity (1/x)</label>
                 <input type="range" id="gold-pipe-rarity" min="1" max="50" value="10">
             </div>
+            <div class="control-row">
+                <label for="gravity">Gravity</label>
+                <input type="range" id="gravity" min="0.1" max="1.0" step="0.05" value="0.25">
+            </div>
+            <div class="control-row">
+                <label for="game-speed">Game Speed</label>
+                <input type="range" id="game-speed" min="1.0" max="10.0" step="0.5" value="2.5">
+            </div>
             <br>
             <button id="close-settings-btn">Close</button>
         </div>
@@ -359,6 +367,8 @@
    const rainbowBirdCheck = document.getElementById('rainbow-bird');
    const rainbowPipesCheck = document.getElementById('rainbow-pipes');
    const goldPipeRaritySlider = document.getElementById('gold-pipe-rarity');
+   const gravitySlider = document.getElementById('gravity');
+   const speedSlider = document.getElementById('game-speed');
 
    startBestEl.innerText = highScore;
 
@@ -799,6 +809,8 @@
         rainbowBirdCheck.checked = config.rainbowBird;
         rainbowPipesCheck.checked = config.rainbowPipes;
         goldPipeRaritySlider.value = config.goldPipeRarity;
+        gravitySlider.value = config.gravity;
+        speedSlider.value = config.speed;
     }
 
     autoFlyCheck.addEventListener('change', () => { config.autoFly = autoFlyCheck.checked; saveSettings(); });
@@ -807,6 +819,8 @@
     rainbowBirdCheck.addEventListener('change', () => { config.rainbowBird = rainbowBirdCheck.checked; saveSettings(); });
     rainbowPipesCheck.addEventListener('change', () => { config.rainbowPipes = rainbowPipesCheck.checked; saveSettings(); });
     goldPipeRaritySlider.addEventListener('input', () => { config.goldPipeRarity = goldPipeRaritySlider.value; saveSettings(); });
+    gravitySlider.addEventListener('input', () => { config.gravity = parseFloat(gravitySlider.value); saveSettings(); });
+    speedSlider.addEventListener('input', () => { config.speed = parseFloat(speedSlider.value); saveSettings(); });
 
 
    // --- Game Loop ---
