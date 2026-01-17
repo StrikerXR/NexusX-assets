@@ -675,6 +675,7 @@ const musicPlayerHTML = `<!DOCTYPE html>
     <meta charset="UTF-8">
     <title>Nexus Player</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css" integrity="sha384-YgSbYtJcfPnMV/aJ0UdQk84ctht/ckX0MrfQwxOhw43RMBw2WSaDSMVh4gQwLdE4" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js" integrity="sha384-c6Uo4N9c3SOEigMVzP6IshUG1wQ5uMp3xeoQFiHWAQ86joWdgyajkvopySyKy/Z6" crossorigin="anonymous"><\/script>
     <style>
         :root {
             --bg-oled: #050505;
@@ -748,6 +749,15 @@ const musicPlayerHTML = `<!DOCTYPE html>
         .btn:hover { color: var(--accent); opacity: 1; transform: scale(1.1); }
         .btn-play { width: 55px; height: 55px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px var(--accent-glow); }
         
+        .range-slider {
+            width: 100%; -webkit-appearance: none; background: rgba(255,255,255,0.1);
+            height: 4px; border-radius: 2px; cursor: pointer;
+        }
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+            background: var(--accent); box-shadow: 0 0 10px var(--accent-glow);
+        }
+
         /* PLAYLIST & RIGHT ZONE */
         .header-bar { padding: 30px; display: flex; justify-content: space-between; align-items: center; }
         .brand { font-weight: 900; letter-spacing: 3px; font-size: 1.1rem; }
@@ -822,6 +832,13 @@ const musicPlayerHTML = `<!DOCTYPE html>
                     <button class="btn btn-play" id="btn-play"><i class="fas fa-play"></i></button>
                     <button class="btn" id="btn-next"><i class="fas fa-forward"></i></button>
                 </div>
+
+                <!-- BASS SLIDER -->
+                <div style="margin-top: 15px; display: flex; align-items: center; gap: 12px; padding: 0 10px;">
+                    <i class="fas fa-wave-square" style="font-size: 0.7rem; color: var(--text-dim);"></i>
+                    <input type="range" id="bass-slider" class="range-slider" min="-10" max="20" value="0" step="1">
+                    <span id="bass-val" style="font-size: 0.7rem; color: var(--accent); font-weight: 700; min-width: 35px;">0dB</span>
+                </div>
             </div>
         </div>
 
@@ -878,6 +895,7 @@ const musicPlayerHTML = `<!DOCTYPE html>
                 this.playlist = [];
                 this.index = 0;
                 this.analyser = null;
+                this.eq = null;
                 
                 this.ui = {
                     title: document.getElementById('title-display'),
@@ -891,7 +909,9 @@ const musicPlayerHTML = `<!DOCTYPE html>
                     canvas: document.getElementById('visualizer'),
                     overlay: document.getElementById('secret-overlay'),
                     sqBg: document.getElementById('sq-bg'),
-                    sqProg: document.getElementById('sq-prog')
+                    sqProg: document.getElementById('sq-prog'),
+                    bass: document.getElementById('bass-slider'),
+                    bassVal: document.getElementById('bass-val')
                 };
 
                 this.generateSquiggle(); 
@@ -926,9 +946,9 @@ const musicPlayerHTML = `<!DOCTYPE html>
             setupEvents() {
                 document.getElementById('file-input').onchange = (e) => this.addFiles(Array.from(e.target.files));
                 
-                this.ui.playBtn.onclick = () => {
+                this.ui.playBtn.onclick = async () => {
                     if(this.audio.paused) { 
-                        this.initAudioContext(); 
+                        await this.initAudioContext();
                         this.audio.play(); 
                         this.ui.playBtn.innerHTML = '<i class="fas fa-pause"></i>';
                     } else { 
@@ -949,18 +969,35 @@ const musicPlayerHTML = `<!DOCTYPE html>
                     if(duration) this.audio.currentTime = (val / 1000) * duration;
                 };
 
+                this.ui.bass.oninput = (e) => {
+                    const val = e.target.value;
+                    if(this.eq) this.eq.low.value = val;
+                    this.ui.bassVal.innerText = val + 'dB';
+                };
+
                 window.onresize = () => this.resizeCanvas();
             }
 
-            initAudioContext() {
+            async initAudioContext() {
                 if(this.audioCtx) return;
-                const AC = window.AudioContext || window.webkitAudioContext;
-                this.audioCtx = new AC();
+
+                await Tone.start();
+                this.audioCtx = Tone.getContext().rawContext;
+
+                this.eq = new Tone.EQ3({
+                    low: parseInt(this.ui.bass.value),
+                    mid: 0,
+                    high: 0
+                }).toDestination();
+
                 const src = this.audioCtx.createMediaElementSource(this.audio);
+
                 this.analyser = this.audioCtx.createAnalyser();
                 this.analyser.fftSize = 256;
-                src.connect(this.analyser);
-                this.analyser.connect(this.audioCtx.destination);
+
+                Tone.connect(src, this.eq);
+                this.eq.connect(this.analyser);
+
                 this.resizeCanvas();
             }
 
