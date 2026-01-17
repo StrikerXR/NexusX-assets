@@ -676,6 +676,10 @@ const musicPlayerHTML = `<!DOCTYPE html>
     <title>Nexus Player</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css" integrity="sha384-YgSbYtJcfPnMV/aJ0UdQk84ctht/ckX0MrfQwxOhw43RMBw2WSaDSMVh4gQwLdE4" crossorigin="anonymous">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js" integrity="sha384-c6Uo4N9c3SOEigMVzP6IshUG1wQ5uMp3xeoQFiHWAQ86joWdgyajkvopySyKy/Z6" crossorigin="anonymous"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/buffer@6.0.3/index.min.js" integrity="sha384-90id7S86mXvYfS998f48G5Y46/X/uU7vO+AUnS4v0BfNcs9Xo7oG/YtJ5Ew/u7u" crossorigin="anonymous"><\/script>
+    <script>
+        window.Buffer = window.Buffer || buffer.Buffer;
+    <\/script>
     <style>
         :root {
             --bg-oled: #050505;
@@ -772,44 +776,16 @@ const musicPlayerHTML = `<!DOCTYPE html>
         .playlist-item.playing { background: rgba(0, 123, 255, 0.1); border-left: 4px solid var(--accent); }
         
         #visualizer { width: 100%; height: 120px; flex: none; }
-
-        /* --- EASTER EGG CSS --- */
-        #secret-overlay {
-            position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-            background: #000; color: #fff; font-size: 4rem; font-weight: 900; letter-spacing: 2px;
-            opacity: 0; pointer-events: none; transition: opacity 0.5s ease; z-index: 9999;
-            text-align: center;
-            font-family: "Comic Sans MS", "Chalkboard SE", sans-serif;
-        }
-        
-        body.imploding .nexus-shell {
-            animation: blackHoleSuck 2.5s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
-        }
-        
-        body.exploding .nexus-shell {
-            animation: bigBang 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-
-        @keyframes blackHoleSuck {
-            0% { transform: scale(1) rotate(0deg); filter: brightness(1); }
-            40% { transform: scale(0.9) rotate(5deg); filter: brightness(0.8) hue-rotate(90deg); }
-            100% { transform: scale(0) rotate(720deg); filter: brightness(0); border-radius: 50%; }
-        }
-
-        @keyframes bigBang {
-            0% { transform: scale(0); filter: brightness(5); }
-            100% { transform: scale(1); filter: brightness(1); }
-        }
     </style>
 </head>
 <body>
-    <div id="secret-overlay">YIPEEE GOOD SONG :)</div>
     <div class="ambient-glow"></div>
     
     <div class="nexus-shell">
         <div class="zone-left">
             <div class="art-wrapper">
-                <img id="cover-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+                <img id="cover-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display: block;">
+                <video id="video-player" style="display: none; width: 100%; height: 100%; object-fit: contain; background: #000;"></video>
             </div>
             
             <div class="track-info">
@@ -845,8 +821,8 @@ const musicPlayerHTML = `<!DOCTYPE html>
         <div class="zone-right">
             <div class="header-bar">
                 <div class="brand">NEXUS<span>STUDIO</span></div>
-                <label for="file-input" class="file-upload-label"><i class="fas fa-plus"></i> LOAD MP3</label>
-                <input type="file" id="file-input" accept="audio/*" multiple>
+                <label for="file-input" class="file-upload-label"><i class="fas fa-plus"></i> LOAD MEDIA</label>
+                <input type="file" id="file-input" accept="audio/*,video/*" multiple>
             </div>
             <div class="playlist-header">QUEUE</div>
             <ul id="playlist"></ul>
@@ -855,7 +831,7 @@ const musicPlayerHTML = `<!DOCTYPE html>
     </div>
 
     <script type="module">
-        import * as mm from 'https://cdn.jsdelivr.net/npm/music-metadata-browser@2.5.11/+esm';
+        import * as mm from 'https://cdn.jsdelivr.net/npm/music-metadata@11.10.6/+esm';
 
         // --- 1. INDEXED DB (Persistence) ---
         const DB = {
@@ -890,7 +866,7 @@ const musicPlayerHTML = `<!DOCTYPE html>
         // --- 2. PLAYER LOGIC ---
         class NexusPlayer {
             constructor() {
-                this.audio = new Audio();
+                this.media = document.getElementById('video-player');
                 this.audioCtx = null;
                 this.playlist = [];
                 this.index = 0;
@@ -901,13 +877,13 @@ const musicPlayerHTML = `<!DOCTYPE html>
                     title: document.getElementById('title-display'),
                     artist: document.getElementById('artist-display'),
                     cover: document.getElementById('cover-img'),
+                    video: document.getElementById('video-player'),
                     playBtn: document.getElementById('btn-play'),
                     seek: document.getElementById('seek-slider'),
                     curr: document.getElementById('curr-time'),
                     dur: document.getElementById('dur-time'),
                     list: document.getElementById('playlist'),
                     canvas: document.getElementById('visualizer'),
-                    overlay: document.getElementById('secret-overlay'),
                     sqBg: document.getElementById('sq-bg'),
                     sqProg: document.getElementById('sq-prog'),
                     bass: document.getElementById('bass-slider'),
@@ -947,12 +923,12 @@ const musicPlayerHTML = `<!DOCTYPE html>
                 document.getElementById('file-input').onchange = (e) => this.addFiles(Array.from(e.target.files));
                 
                 this.ui.playBtn.onclick = async () => {
-                    if(this.audio.paused) { 
+                    if(this.media.paused) {
                         await this.initAudioContext();
-                        this.audio.play(); 
+                        this.media.play().catch(e => console.error("Playback failed:", e));
                         this.ui.playBtn.innerHTML = '<i class="fas fa-pause"></i>';
                     } else { 
-                        this.audio.pause(); 
+                        this.media.pause();
                         this.ui.playBtn.innerHTML = '<i class="fas fa-play"></i>';
                     }
                 };
@@ -960,13 +936,13 @@ const musicPlayerHTML = `<!DOCTYPE html>
                 document.getElementById('btn-next').onclick = () => this.next();
                 document.getElementById('btn-prev').onclick = () => this.prev();
                 
-                this.audio.onended = () => this.next();
-                this.audio.ontimeupdate = () => this.updateProgress();
+                this.media.onended = () => this.next();
+                this.media.ontimeupdate = () => this.updateProgress();
                 
                 this.ui.seek.oninput = (e) => {
                     const val = e.target.value;
-                    const duration = this.audio.duration;
-                    if(duration) this.audio.currentTime = (val / 1000) * duration;
+                    const duration = this.media.duration;
+                    if(duration) this.media.currentTime = (val / 1000) * duration;
                 };
 
                 this.ui.bass.oninput = (e) => {
@@ -981,24 +957,28 @@ const musicPlayerHTML = `<!DOCTYPE html>
             async initAudioContext() {
                 if(this.audioCtx) return;
 
-                await Tone.start();
-                this.audioCtx = Tone.getContext().rawContext;
+                try {
+                    await Tone.start();
+                    this.audioCtx = Tone.getContext().rawContext;
 
-                this.eq = new Tone.EQ3({
-                    low: parseInt(this.ui.bass.value),
-                    mid: 0,
-                    high: 0
-                }).toDestination();
+                    this.eq = new Tone.EQ3({
+                        low: parseInt(this.ui.bass.value),
+                        mid: 0,
+                        high: 0
+                    }).toDestination();
 
-                const src = this.audioCtx.createMediaElementSource(this.audio);
+                    const src = this.audioCtx.createMediaElementSource(this.media);
 
-                this.analyser = this.audioCtx.createAnalyser();
-                this.analyser.fftSize = 256;
+                    this.analyser = this.audioCtx.createAnalyser();
+                    this.analyser.fftSize = 256;
 
-                Tone.connect(src, this.eq);
-                this.eq.connect(this.analyser);
+                    Tone.connect(src, this.eq);
+                    this.eq.connect(this.analyser);
 
-                this.resizeCanvas();
+                    this.resizeCanvas();
+                } catch (e) {
+                    console.error("AudioContext initialization failed:", e);
+                }
             }
 
             async addFiles(files) {
@@ -1012,7 +992,8 @@ const musicPlayerHTML = `<!DOCTYPE html>
                         url: URL.createObjectURL(file),
                         title: meta.title || file.name.replace(/\\.[^/.]+$/, ""),
                         artist: meta.artist || "Unknown Artist",
-                        cover: meta.cover || "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                        cover: meta.cover || "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+                        isVideo: file.type.startsWith('video/')
                     });
                 }
                 
@@ -1024,19 +1005,11 @@ const musicPlayerHTML = `<!DOCTYPE html>
             async readMetadata(file) {
                 try {
                     const metadata = await mm.parseBlob(file);
-                    let cover = null;
-                    const tags = metadata.common;
-
-                    if (tags.picture && tags.picture.length > 0) {
-                        const pic = tags.picture[0];
-                        const blob = new Blob([pic.data], { type: pic.format });
-                        cover = URL.createObjectURL(blob);
-                    }
-
+                    const common = metadata.common || {};
                     return {
-                        title: tags.title,
-                        artist: tags.artist,
-                        cover: cover
+                        title: common.title,
+                        artist: common.artist,
+                        cover: this.getCover(common.picture)
                     };
                 } catch (error) {
                     console.error("Metadata Error:", error);
@@ -1044,46 +1017,37 @@ const musicPlayerHTML = `<!DOCTYPE html>
                 }
             }
 
+            getCover(picture) {
+                if (!picture || picture.length === 0) return null;
+                const pic = picture[0];
+                const blob = new Blob([pic.data], { type: pic.format });
+                return URL.createObjectURL(blob);
+            }
+
             loadTrack(i) {
                 if(i < 0 || i >= this.playlist.length) return;
                 this.index = i;
                 const track = this.playlist[i];
                 
-                this.audio.src = track.url;
+                this.media.src = track.url;
+                this.media.load(); // Ensure fresh load
                 this.ui.title.innerText = track.title;
                 this.ui.artist.innerText = track.artist;
                 this.ui.cover.src = track.cover;
                 
+                if (track.isVideo) {
+                    this.ui.video.style.display = 'block';
+                    this.ui.cover.style.display = 'none';
+                } else {
+                    this.ui.video.style.display = 'none';
+                    this.ui.cover.style.display = 'block';
+                }
+
                 this.updateActiveItem();
                 
                 if(this.audioCtx) {
-                    this.audio.play();
+                    this.media.play().catch(e => console.error("Playback failed:", e));
                     this.ui.playBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                }
-
-                this.checkSecretProtocol(track.artist);
-            }
-
-            checkSecretProtocol(artistName) {
-                const cleanName = (artistName || "").toLowerCase().replace(/\\s/g, '');
-                
-                if (cleanName.includes('twentyonepilots')) {
-                    console.log("PROTOCOL INITIATED");
-                    setTimeout(() => {
-                        document.body.classList.add('imploding');
-                        setTimeout(() => {
-                            this.ui.overlay.style.opacity = '1'; 
-                        }, 2000);
-
-                        setTimeout(() => {
-                            this.ui.overlay.style.opacity = '0';
-                            document.body.classList.remove('imploding');
-                            document.body.classList.add('exploding');
-                            setTimeout(() => {
-                                document.body.classList.remove('exploding');
-                            }, 1000);
-                        }, 4500);
-                    }, 500);
                 }
             }
 
@@ -1091,8 +1055,8 @@ const musicPlayerHTML = `<!DOCTYPE html>
             prev() { this.loadTrack((this.index - 1 + this.playlist.length) % this.playlist.length); }
 
             updateProgress() {
-                const cur = this.audio.currentTime;
-                const dur = this.audio.duration;
+                const cur = this.media.currentTime;
+                const dur = this.media.duration;
                 
                 if(isNaN(dur)) return;
 
@@ -1142,7 +1106,7 @@ const musicPlayerHTML = `<!DOCTYPE html>
 
             loop() {
                 requestAnimationFrame(() => this.loop());
-                if(!this.analyser || this.audio.paused) return;
+                if(!this.analyser || this.media.paused) return;
                 
                 const ctx = this.ui.canvas.getContext('2d');
                 const w = this.ui.canvas.width;
@@ -1164,8 +1128,8 @@ const musicPlayerHTML = `<!DOCTYPE html>
         }
 
         window.onload = () => {
-            const player = new NexusPlayer();
-            player.init();
+            window.player = new NexusPlayer();
+            window.player.init();
         };
     <\/script>
 </body>
@@ -1178,7 +1142,7 @@ const musicPlayerHTML = `<!DOCTYPE html>
                 marked: "17.0.1",
                 lucide: "0.562.0",
                 fontAwesome: "7.1.0",
-                musicMetadata: "2.5.11"
+                musicMetadata: "11.10.6"
             }
         };
 
