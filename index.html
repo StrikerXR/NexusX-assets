@@ -522,7 +522,10 @@
         <div class="modal-box">
             <div class="modal-header">
                 <span class="modal-title">Changelog</span>
-                <button class="btn btn-danger" style="padding:6px 12px;" onclick="Modals.close('changelog-modal')">Close</button>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button class="btn btn-ghost" style="padding:4px 10px; font-size:0.75rem;" onclick="Changelog.reload()">Refresh</button>
+                    <button class="btn btn-danger" style="padding:6px 12px;" onclick="Modals.close('changelog-modal')">Close</button>
+                </div>
             </div>
             <div class="nc-body" id="changelog-content" style="max-height: 60vh; padding-right: 15px;">
                 <div class="notif-loading">Loading Changelog...</div>
@@ -1580,9 +1583,22 @@ const Notifications = {
             loaded: false,
             open: () => {
                 Modals.open('changelog-modal');
-                if (Changelog.loaded) return;
-
+                if (!Changelog.loaded) Changelog.reload();
+            },
+            reload: () => {
                 const content = document.getElementById('changelog-content');
+                content.innerHTML = '<div class="notif-loading">Loading Changelog...</div>';
+
+                const CACHE_KEY = 'nx_changelog_cache';
+                const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+
+                const cachedData = JSON.parse(localStorage.getItem(CACHE_KEY));
+                if (cachedData && (Date.now() - cachedData.timestamp < CACHE_DURATION)) {
+                    content.innerHTML = `<div class="notif-card">${cachedData.html}</div>`;
+                    Changelog.loaded = true;
+                    return;
+                }
+
                 const proxyUrl = 'https://api.allorigins.win/raw?url=';
                 const targetUrl = 'https://pastebin.com/raw/6zCTDTmj';
 
@@ -1592,15 +1608,21 @@ const Notifications = {
                         return r.text();
                     })
                     .then(text => {
-                        content.innerHTML = `<div class="notif-card">${marked.parse(text)}</div>`;
+                        const html = marked.parse(text);
+                        content.innerHTML = `<div class="notif-card">${html}</div>`;
+                        localStorage.setItem(CACHE_KEY, JSON.stringify({ html, timestamp: Date.now() }));
                         Changelog.loaded = true;
                     })
                     .catch(e => {
                         console.error("Changelog Error:", e);
-                        content.innerHTML = `<div class="notif-card" style="color:#ef4444">
-                            <strong>Fetch Error:</strong><br>
-                            Failed to load the changelog.
-                        </div>`;
+                        if (cachedData) {
+                            content.innerHTML = `<div class="notif-card">${cachedData.html}</div>`;
+                        } else {
+                            content.innerHTML = `<div class="notif-card" style="color:#ef4444">
+                                <strong>Fetch Error:</strong><br>
+                                Failed to load the changelog.
+                            </div>`;
+                        }
                     });
             }
         };
