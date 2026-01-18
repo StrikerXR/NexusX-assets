@@ -756,6 +756,10 @@
                                 <span>Anti-Close</span>
                                 <label class="switch"><input type="checkbox" id="ptc-toggle" onchange="Settings.togglePrevent()"><span class="slider"></span></label>
                             </div>
+                            <div class="control-row" id="mobile-toggle-row" style="display:none">
+                                <span>Mobile UI</span>
+                                <label class="switch"><input type="checkbox" id="mobile-toggle" onchange="localStorage.setItem('nx_force_desktop', !this.checked); location.reload()"><span class="slider"></span></label>
+                            </div>
                         </div>
 
                         <div class="st-group">
@@ -1293,10 +1297,10 @@ const musicPlayerHTML = `<!DOCTYPE html>
             { title: "Froggies Arcade", url: "https://frogs.look.good.pxi-fusion.com.cdn.cloudflare.net/math/", image: "https://images.unsplash.com/photo-1590005176489-db2e714711fc?q=100&w=2500", isNew: true },
             { title: "GNMath V2", url: "https://ormsescaperoad.w3spaces.com/gnmath.html", image: "https://images.unsplash.com/photo-1648700231913-ad061d9b3ec9?q=100&w=2500", isNew: true },
             { title: "BitLife", url: "https://ormsescaperoad.w3spaces.com/bitlife.html", image: "https://images.unsplash.com/photo-1563207153-f403bf289096?q=100&w=2500&auto=format&fit=crop", isNew: true },
-            { title: "Snow Rider 3D", url: "https://ormsescaperoad.w3spaces.com/snow.html", image: "https://images.unsplash.com/photo-1719930221794-0680e7fd8071?q=100&w=2500", isNew: true },
+            { title: "Snow Rider 3D", url: "https://ormsescaperoad.w3spaces.com/snow.html", image: "RANDOM:snow", isNew: true },
             { title: "Oregon Trail", url: "https://oregontrail.ws/the-oregon-trail-game/", image: "https://images.unsplash.com/photo-1533167649158-6d508895b680?q=100&w=2500", isNew: true },
             { title: "Mesh", url: "https://me.meshcapade.com/editor", image: "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?q=100&w=2500", isNew: true },
-            { title: "Willway", url: "https://admin.internetspeedtest.world/", image: "https://images.unsplash.com/photo-1551703599-6b3e8379aa8b?q=100&w=2500", isNew: true },
+            { title: "Willway", url: "https://admin.internetspeedtest.world/", image: "RANDOM:speed", isNew: true },
             { title: "FC Games", url: "https://agreeable-mud-098a6b110.1.azurestaticapps.net/", image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=100&w=2500", isNew: true },
             { title: "Silk", url: "https://ormsescaperoad.w3spaces.com/silk.html", image: "https://images.unsplash.com/photo-1502691876148-a84978e59af8?q=100&w=2500" },
             { title: "Snake", url: "https://ormsescaperoad.w3spaces.com/snake.html", image: "https://images.unsplash.com/photo-1739869610059-86fabc7bcd7b?fit=clip&q=100&w=2500" },
@@ -1402,7 +1406,28 @@ const musicPlayerHTML = `<!DOCTYPE html>
             getBase64: (file) => new Promise((res, rej) => {
                 const r = new FileReader(); r.readAsDataURL(file);
                 r.onload=()=>res(r.result); r.onerror=e=>rej(e);
-            })
+            }),
+            getRandomImage: (tag) => {
+                const map = {
+                    'snow': [
+                        'photo-1719930221794-0680e7fd8071',
+                        'photo-1517210122102-1490200edc21',
+                        'photo-1551698618-1fed5d978018',
+                        'photo-1454496522488-7a8e488e860c',
+                        'photo-1483921020237-2ff51e8e4b22'
+                    ],
+                    'speed': [
+                        'photo-1551703599-6b3e8379aa8b',
+                        'photo-1451187580459-43490279c0fa',
+                        'photo-1563986768609-322da13575f3',
+                        'photo-1550751827-4bd374c3f58b',
+                        'photo-1518770660439-4636190af475'
+                    ]
+                };
+                const ids = map[tag] || ['photo-1526778548025-fa2f459cd5c1'];
+                const id = ids[Math.floor(Math.random() * ids.length)];
+                return `https://images.unsplash.com/${id}?q=100&w=2500`;
+            }
         };
 
         const MusicApp = {
@@ -1566,6 +1591,10 @@ const Notifications = {
                 
                 for (let i = 0; i < Games.list.length; i++) {
                     const g = Games.list[i];
+                    let img = g.image;
+                    if (img.startsWith('RANDOM:')) {
+                        img = Utils.getRandomImage(img.split(':')[1]);
+                    }
                     let card = document.createElement('div');
                     card.className = "game-card";
                     const isCustom = i >= DefaultGames.length;
@@ -1575,7 +1604,7 @@ const Notifications = {
                     if(isCustom) html += `<div class="card-del-btn" onclick="event.stopPropagation(); Games.removeCustom(${i - DefaultGames.length})"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></div>`;
 
                     // Try to get cached image
-                    const displayImage = await ImageCache.fetchAndCache(g.image);
+                    const displayImage = await ImageCache.fetchAndCache(img);
                     html += `<div class="card-inner"><img src="${displayImage}" loading="lazy"></div><div class="card-title">${g.title}</div>`;
                     
                     card.innerHTML = html;
@@ -1685,6 +1714,13 @@ const Notifications = {
                 document.getElementById('time-toggle').checked = State.settings.time24;
                 document.getElementById('ptc-toggle').checked = State.settings.preventClose;
                 document.getElementById('bg-input').value = State.settings.bg;
+
+                // Show mobile toggle if on mobile device
+                const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if (isMobileUA) {
+                    document.getElementById('mobile-toggle-row').style.display = 'flex';
+                    document.getElementById('mobile-toggle').checked = localStorage.getItem('nx_force_desktop') !== 'true';
+                }
 
                 if(State.settings.lightMode) document.body.classList.add('light-mode');
                 Settings.setBg(State.settings.bg);
@@ -2106,6 +2142,365 @@ const Notifications = {
             }
         };
 
+        const Mobile = {
+            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && localStorage.getItem('nx_force_desktop') !== 'true',
+            activeTab: 'library',
+            haptic: (type = 'light') => {
+                if (!navigator.vibrate) return;
+                if (type === 'light') navigator.vibrate(10);
+                else if (type === 'medium') navigator.vibrate(20);
+                else if (type === 'heavy') navigator.vibrate(40);
+                else if (type === 'error') navigator.vibrate([30, 50, 30]);
+            },
+            init: () => {
+                if (!Mobile.isMobile) return;
+
+                document.body.classList.add('mobile-mode');
+
+                // Hide everything else but keep crucial overlays and scripts/styles
+                Array.from(document.body.children).forEach(child => {
+                    const isOverlay = child.classList.contains('modal-overlay') || child.id === 'oobe-overlay';
+                    const isSystem = ['SCRIPT', 'STYLE'].includes(child.tagName) || child.id === 'mobile-interface';
+
+                    if (!isOverlay && !isSystem) {
+                        child.style.display = 'none';
+                    }
+                });
+
+                const style = document.createElement('style');
+                style.id = 'mobile-styles';
+                style.textContent = `
+                    #mobile-interface {
+                        position: fixed; inset: 0; z-index: 999999;
+                        background: var(--bg-base); color: var(--text-main);
+                        display: flex; flex-direction: column;
+                        font-family: 'Inter', sans-serif;
+                        overflow: hidden;
+                    }
+                    #m-status-bar {
+                        height: 44px; display: flex; justify-content: space-between;
+                        align-items: center; padding: 0 24px; font-size: 14px; font-weight: 700;
+                        letter-spacing: -0.2px;
+                    }
+                    .m-status-right { display: flex; gap: 6px; align-items: center; }
+                    #m-content {
+                        flex: 1; overflow-y: auto; padding: 24px;
+                        padding-bottom: 110px;
+                        scrollbar-width: none;
+                    }
+                    #m-content::-webkit-scrollbar { display: none; }
+
+                    #m-nav {
+                        position: fixed; bottom: 0; left: 0; right: 0; height: 84px;
+                        background: rgba(10,10,10,0.85); backdrop-filter: blur(30px) saturate(180%);
+                        -webkit-backdrop-filter: blur(30px) saturate(180%);
+                        border-top: 1px solid var(--glass-border);
+                        display: flex; justify-content: space-around; align-items: center;
+                        padding-bottom: env(safe-area-inset-bottom);
+                        z-index: 9999999;
+                        pointer-events: auto;
+                    }
+                    .m-nav-item {
+                        display: flex; flex-direction: column; align-items: center; gap: 6px;
+                        color: #6b7280; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                        font-size: 10px; font-weight: 700;
+                        cursor: pointer; width: 25%;
+                    }
+                    .m-nav-item.active { color: var(--accent); transform: translateY(-2px); }
+                    .m-nav-item i { width: 24px; height: 24px; stroke-width: 2.2px; }
+
+                    .m-section-title {
+                        font-size: 34px; font-weight: 800; margin-bottom: 28px;
+                        margin-top: 10px; letter-spacing: -1.2px;
+                        background: linear-gradient(to bottom, var(--text-main), var(--text-dim));
+                        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                    }
+
+                    .m-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+                    .m-card {
+                        background: var(--card-bg); border-radius: 28px; overflow: hidden;
+                        aspect-ratio: 1/1.1; position: relative; border: 1px solid var(--glass-border);
+                        box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+                        transition: transform 0.2s;
+                    }
+                    .m-card:active { transform: scale(0.96); }
+                    .m-card img { width: 100%; height: 100%; object-fit: cover; }
+                    .m-card-label {
+                        position: absolute; bottom: 0; left: 0; right: 0; padding: 14px;
+                        background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+                        font-size: 13px; font-weight: 700; color: white;
+                        text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+                    }
+
+                    .m-settings-list { display: flex; flex-direction: column; gap: 14px; }
+                    .m-settings-item {
+                        background: var(--card-bg); padding: 20px; border-radius: 24px;
+                        display: flex; justify-content: space-between; align-items: center;
+                        border: 1px solid var(--glass-border);
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                    }
+                    .m-settings-label { display: flex; align-items: center; gap: 14px; font-weight: 600; font-size: 15px; }
+
+                    .m-notif-container {
+                        background: var(--card-bg); border-radius: 30px; padding: 24px;
+                        border: 1px solid var(--glass-border); line-height: 1.6;
+                        white-space: pre-wrap;
+                    }
+                    .m-notif-container h1, .m-notif-container h2 {
+                        font-size: 1.4rem; font-weight: 800; margin-bottom: 15px;
+                        color: var(--text-main); border-bottom: 1px solid var(--glass-border);
+                        padding-bottom: 10px;
+                    }
+                    .m-notif-container p { font-size: 0.95rem; color: var(--text-dim); margin-bottom: 12px; }
+                    .m-notif-container ul { list-style: none; margin-bottom: 15px; }
+                    .m-notif-container li { margin-bottom: 10px; position: relative; padding-left: 20px; color: var(--text-dim); font-size: 0.9rem; }
+                    .m-notif-container li::before { content: '•'; color: var(--accent); position: absolute; left: 0; font-weight: 800; }
+
+                    /* Theme overrides for mobile */
+                    body.mobile-mode #oobe-overlay { z-index: 2000000; }
+                    body.mobile-mode .pill-container { border-radius: 32px; padding: 32px; }
+                `;
+                document.head.appendChild(style);
+
+                const mi = document.createElement('div');
+                mi.id = 'mobile-interface';
+                mi.innerHTML = `
+                    <div id="m-status-bar">
+                        <div id="m-time">00:00</div>
+                        <div class="m-status-right">
+                            <i data-lucide="signal" style="width:18px"></i>
+                            <i data-lucide="wifi" style="width:18px"></i>
+                            <i data-lucide="battery-medium" style="width:18px"></i>
+                        </div>
+                    </div>
+                    <div id="m-content"></div>
+                    <div id="m-nav">
+                        <div class="m-nav-item active" onclick="Mobile.switch('library')"><i data-lucide="layout-grid"></i><span>Apps</span></div>
+                        <div class="m-nav-item" onclick="Mobile.switch('music')"><i data-lucide="music-2"></i><span>Music</span></div>
+                        <div class="m-nav-item" onclick="Mobile.switch('updates')"><i data-lucide="sparkles"></i><span>Updates</span></div>
+                        <div class="m-nav-item" onclick="Mobile.switch('settings')"><i data-lucide="bolt"></i><span>Settings</span></div>
+                    </div>
+                `;
+                document.body.appendChild(mi);
+
+                Mobile.updateTime();
+                setInterval(Mobile.updateTime, 1000);
+
+                Mobile.switch('library');
+                lucide.createIcons();
+            },
+            updateTime: () => {
+                const now = new Date();
+                let h = now.getHours();
+                const m = String(now.getMinutes()).padStart(2, '0');
+                const el = document.getElementById('m-time');
+                if (!el) return;
+
+                if (State.settings.time24) {
+                    el.innerText = `${String(h).padStart(2, '0')}:${m}`;
+                } else {
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12 || 12;
+                    el.innerText = `${h}:${m} ${ampm}`;
+                }
+            },
+            switch: (tab) => {
+                const content = document.getElementById('m-content');
+                if (!content) return;
+                if (Mobile.activeTab === tab && content.innerHTML !== '') return;
+                Mobile.haptic('light');
+
+                if (content.innerHTML !== '') {
+                    Motion.animate(content, { opacity: 0, scale: 0.98 }, { duration: 0.15 }).finished.then(() => {
+                        Mobile.performSwitch(tab);
+                    });
+                } else {
+                    Mobile.performSwitch(tab);
+                }
+            },
+            performSwitch: (tab) => {
+                const content = document.getElementById('m-content');
+                Mobile.activeTab = tab;
+
+                document.querySelectorAll('.m-nav-item').forEach(item => {
+                    const label = item.querySelector('span').innerText.toLowerCase().trim();
+                    const isActive = (label === 'apps' && tab === 'library') || label === tab;
+                    item.classList.toggle('active', isActive);
+                });
+
+                content.innerHTML = '';
+                content.style.opacity = '0';
+
+                if (tab === 'library') Mobile.renderLibrary();
+                else if (tab === 'music') Mobile.renderMusic();
+                else if (tab === 'updates') Mobile.renderUpdates();
+                else if (tab === 'settings') Mobile.renderSettings();
+
+                Motion.animate(content, { opacity: 1, scale: [1.02, 1] }, { duration: 0.3 });
+                lucide.createIcons();
+            },
+            renderLibrary: async () => {
+                const content = document.getElementById('m-content');
+                content.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 24px;">
+                        <div class="m-section-title" style="margin-bottom:0">Library</div>
+                        <div id="m-search-btn" style="padding:8px; opacity:0.6;"><i data-lucide="search" style="width:20px"></i></div>
+                    </div>
+                    <div id="m-search-wrap" style="display:none; margin-bottom: 20px;">
+                        <input type="text" id="m-search-input" placeholder="Search apps..."
+                               style="width:100%; background:var(--card-bg); border:1px solid var(--glass-border); padding:14px 20px; border-radius:20px; color:white; font-size:15px; outline:none;">
+                    </div>
+                    <div id="m-grid" class="m-grid"></div>
+                `;
+                const grid = document.getElementById('m-grid');
+
+                const games = [...DefaultGames, ...State.settings.customGames];
+                for (let i = 0; i < games.length; i++) {
+                    const g = games[i];
+                    let img = g.image;
+                    if (img.startsWith('RANDOM:')) {
+                        img = Utils.getRandomImage(img.split(':')[1]);
+                    }
+
+                    const displayImage = await ImageCache.fetchAndCache(img);
+
+                    const card = document.createElement('div');
+                    card.className = 'm-card';
+                    card.innerHTML = `<img src="${displayImage}" loading="lazy"><div class="m-card-label">${g.title}</div>`;
+                    card.onclick = () => {
+                        Mobile.haptic('medium');
+                        Motion.animate(card, { scale: 0.94 }, { duration: 0.1 }).finished.then(() => {
+                            Motion.animate(card, { scale: 1 }, { duration: 0.1 });
+                            window.open(g.url, '_blank');
+                        });
+                    };
+                    grid.appendChild(card);
+
+                    Motion.animate(card, { opacity: [0, 1], scale: [0.85, 1], y: [30, 0] }, {
+                        delay: i * 0.035,
+                        type: "spring", stiffness: 350, damping: 28
+                    });
+                }
+
+                document.getElementById('m-search-btn').onclick = () => {
+                    Mobile.haptic('light');
+                    const wrap = document.getElementById('m-search-wrap');
+                    const isHidden = wrap.style.display === 'none';
+                    if(isHidden) {
+                        wrap.style.display = 'block';
+                        document.getElementById('m-search-input').focus();
+                        Motion.animate(wrap, { opacity: [0, 1], y: [-10, 0], scale: [0.95, 1] }, { duration: 0.25 });
+                    } else {
+                        Motion.animate(wrap, { opacity: 0, y: -10, scale: 0.95 }, { duration: 0.2 }).finished.then(() => {
+                            wrap.style.display = 'none';
+                        });
+                    }
+                };
+
+                document.getElementById('m-search-input').oninput = (e) => {
+                    const q = e.target.value.toLowerCase();
+                    grid.querySelectorAll('.m-card').forEach(card => {
+                        const t = card.querySelector('.m-card-label').innerText.toLowerCase();
+                        card.style.display = t.includes(q) ? 'block' : 'none';
+                    });
+                };
+                lucide.createIcons();
+            },
+            renderMusic: () => {
+                const content = document.getElementById('m-content');
+                content.innerHTML = `
+                    <div class="m-section-title">Music</div>
+                    <div id="m-music-container" style="height: calc(100vh - 300px); min-height: 500px; border-radius: 32px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); background: #000; box-shadow: 0 20px 40px rgba(0,0,0,0.4);"></div>
+                `;
+                const container = document.getElementById('m-music-container');
+                const iframe = document.createElement('iframe');
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.border = 'none';
+                iframe.srcdoc = musicPlayerHTML;
+                container.appendChild(iframe);
+
+                Motion.animate(container, { opacity: [0, 1], scale: [0.95, 1] }, { type: "spring", stiffness: 300, damping: 25 });
+            },
+            renderUpdates: (force = false) => {
+                if (force) Mobile.haptic('medium');
+                const content = document.getElementById('m-content');
+                content.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 24px;">
+                        <div class="m-section-title" style="margin-bottom:0">Updates</div>
+                        <div onclick="Mobile.renderUpdates(true)" style="padding:8px; opacity:0.6;"><i data-lucide="refresh-cw" style="width:20px"></i></div>
+                    </div>
+                    <div id="m-updates-list"></div>
+                `;
+                const list = document.getElementById('m-updates-list');
+
+                const cached = localStorage.getItem('nx_changelog_cache');
+                if (cached && !force) {
+                    const data = JSON.parse(cached);
+                    if (Date.now() - data.time < 15 * 60 * 1000) {
+                        const html = marked.parse(data.content);
+                        list.innerHTML = `<div class="m-notif-container">${html}</div>`;
+                        Motion.animate(list.firstChild, { opacity: [0, 1], scale: [0.95, 1], y: [20, 0] }, { type: "spring", stiffness: 300, damping: 25 });
+                        return;
+                    }
+                }
+
+                list.innerHTML = '<div style="color: #666; padding: 40px; text-align: center; font-weight:600;">Fetching latest news...</div>';
+
+                const proxyUrl = 'https://api.allorigins.win/raw?url=';
+                const targetUrl = 'https://pastebin.com/raw/6zCTDTmj';
+
+                fetch(proxyUrl + encodeURIComponent(targetUrl))
+                    .then(r => r.text())
+                    .then(text => {
+                        localStorage.setItem('nx_changelog_cache', JSON.stringify({ content: text, time: Date.now() }));
+                        const html = marked.parse(text);
+                        list.innerHTML = `<div class="m-notif-container">${html}</div>`;
+                        Motion.animate(list.firstChild, { opacity: [0, 1], scale: [0.95, 1], y: [20, 0] }, { type: "spring", stiffness: 300, damping: 25 });
+                    })
+                    .catch(() => {
+                        list.innerHTML = '<div style="color: #ef4444; padding: 40px; text-align: center; font-weight:600;">Network error. Please try again.</div>';
+                    });
+            },
+            renderSettings: () => {
+                const content = document.getElementById('m-content');
+                content.innerHTML = `
+                    <div class="m-section-title">Settings</div>
+                    <div class="m-settings-list">
+                        <div class="m-settings-item">
+                            <div class="m-settings-label"><i data-lucide="palette" style="color:var(--accent)"></i><span>Light Mode</span></div>
+                            <label class="switch"><input type="checkbox" id="m-theme-toggle" ${State.settings.lightMode ? 'checked' : ''} onchange="Settings.toggleTheme(); Mobile.renderSettings()"><span class="slider"></span></label>
+                        </div>
+                        <div class="m-settings-item">
+                            <div class="m-settings-label"><i data-lucide="clock-4" style="color:var(--accent)"></i><span>24-Hour Time</span></div>
+                            <label class="switch"><input type="checkbox" ${State.settings.time24 ? 'checked' : ''} onchange="Settings.toggleTime(); Mobile.renderSettings()"><span class="slider"></span></label>
+                        </div>
+                        <div class="m-settings-item" onclick="Modals.open('spoof-modal')">
+                            <div class="m-settings-label"><i data-lucide="shield-check" style="color:var(--accent)"></i><span>Tab Cloak</span></div>
+                            <i data-lucide="chevron-right" style="width: 18px; opacity: 0.4"></i>
+                        </div>
+                        <div class="m-settings-item">
+                            <div class="m-settings-label"><i data-lucide="monitor" style="color:var(--accent)"></i><span>Force Desktop Mode</span></div>
+                            <label class="switch"><input type="checkbox" ${localStorage.getItem('nx_force_desktop') === 'true' ? 'checked' : ''} onchange="localStorage.setItem('nx_force_desktop', this.checked); location.reload()"><span class="slider"></span></label>
+                        </div>
+                        <div class="m-settings-item" onclick="OOBE.reset()" style="margin-top:20px; border-color: rgba(239, 68, 68, 0.2);">
+                            <div class="m-settings-label" style="color:#ef4444"><i data-lucide="alert-triangle"></i><span>Factory Reset</span></div>
+                            <i data-lucide="chevron-right" style="width: 18px; opacity: 0.4"></i>
+                        </div>
+                    </div>
+                    <div style="margin-top: 60px; text-align: center;">
+                        <div style="font-size: 18px; font-weight: 800; color: var(--text-main); margin-bottom:4px;">NexusOS Mobile</div>
+                        <div style="font-size: 13px; font-weight: 600; color: var(--accent);">Version ${CONFIG.version}</div>
+                        <div style="font-size: 11px; font-weight: 500; color: var(--text-dim); margin-top:8px; opacity:0.5;">${CONFIG.patchLevel}</div>
+                    </div>
+                `;
+                Motion.animate(content.querySelectorAll('.m-settings-item'), { opacity: [0, 1], y: [10, 0] }, {
+                    delay: (i) => i * 0.05,
+                    type: "spring", stiffness: 300, damping: 25
+                });
+            }
+        };
+
         const View = {
             set: (v, instant = false) => {
                 const items = document.querySelectorAll('.nav-item');
@@ -2207,6 +2602,7 @@ const Notifications = {
         };
 
         window.onload = () => {
+            Mobile.init();
             document.title = `NexusOS ${CONFIG.version}`;
             document.querySelectorAll('.pill-header').forEach(el => {
                     if (el.textContent.trim() === 'NexusOS') el.textContent = `NexusOS ${CONFIG.version}`;
