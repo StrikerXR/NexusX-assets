@@ -756,6 +756,10 @@
                                 <span>Anti-Close</span>
                                 <label class="switch"><input type="checkbox" id="ptc-toggle" onchange="Settings.togglePrevent()"><span class="slider"></span></label>
                             </div>
+                            <div class="control-row" id="mobile-toggle-row" style="display:none">
+                                <span>Mobile UI</span>
+                                <label class="switch"><input type="checkbox" id="mobile-toggle" onchange="localStorage.setItem('nx_force_desktop', !this.checked); location.reload()"><span class="slider"></span></label>
+                            </div>
                         </div>
 
                         <div class="st-group">
@@ -1293,10 +1297,10 @@ const musicPlayerHTML = `<!DOCTYPE html>
             { title: "Froggies Arcade", url: "https://frogs.look.good.pxi-fusion.com.cdn.cloudflare.net/math/", image: "https://images.unsplash.com/photo-1590005176489-db2e714711fc?q=100&w=2500", isNew: true },
             { title: "GNMath V2", url: "https://ormsescaperoad.w3spaces.com/gnmath.html", image: "https://images.unsplash.com/photo-1648700231913-ad061d9b3ec9?q=100&w=2500", isNew: true },
             { title: "BitLife", url: "https://ormsescaperoad.w3spaces.com/bitlife.html", image: "https://images.unsplash.com/photo-1563207153-f403bf289096?q=100&w=2500&auto=format&fit=crop", isNew: true },
-            { title: "Snow Rider 3D", url: "https://ormsescaperoad.w3spaces.com/snow.html", image: "https://images.unsplash.com/photo-1719930221794-0680e7fd8071?q=100&w=2500", isNew: true },
+            { title: "Snow Rider 3D", url: "https://ormsescaperoad.w3spaces.com/snow.html", image: "RANDOM:snow", isNew: true },
             { title: "Oregon Trail", url: "https://oregontrail.ws/the-oregon-trail-game/", image: "https://images.unsplash.com/photo-1533167649158-6d508895b680?q=100&w=2500", isNew: true },
             { title: "Mesh", url: "https://me.meshcapade.com/editor", image: "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?q=100&w=2500", isNew: true },
-            { title: "Willway", url: "https://admin.internetspeedtest.world/", image: "https://images.unsplash.com/photo-1551703599-6b3e8379aa8b?q=100&w=2500", isNew: true },
+            { title: "Willway", url: "https://admin.internetspeedtest.world/", image: "RANDOM:speed", isNew: true },
             { title: "FC Games", url: "https://agreeable-mud-098a6b110.1.azurestaticapps.net/", image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=100&w=2500", isNew: true },
             { title: "Silk", url: "https://ormsescaperoad.w3spaces.com/silk.html", image: "https://images.unsplash.com/photo-1502691876148-a84978e59af8?q=100&w=2500" },
             { title: "Snake", url: "https://ormsescaperoad.w3spaces.com/snake.html", image: "https://images.unsplash.com/photo-1739869610059-86fabc7bcd7b?fit=clip&q=100&w=2500" },
@@ -1402,7 +1406,28 @@ const musicPlayerHTML = `<!DOCTYPE html>
             getBase64: (file) => new Promise((res, rej) => {
                 const r = new FileReader(); r.readAsDataURL(file);
                 r.onload=()=>res(r.result); r.onerror=e=>rej(e);
-            })
+            }),
+            getRandomImage: (tag) => {
+                const map = {
+                    'snow': [
+                        'photo-1719930221794-0680e7fd8071',
+                        'photo-1517210122102-1490200edc21',
+                        'photo-1551698618-1fed5d978018',
+                        'photo-1454496522488-7a8e488e860c',
+                        'photo-1483921020237-2ff51e8e4b22'
+                    ],
+                    'speed': [
+                        'photo-1551703599-6b3e8379aa8b',
+                        'photo-1451187580459-43490279c0fa',
+                        'photo-1563986768609-322da13575f3',
+                        'photo-1550751827-4bd374c3f58b',
+                        'photo-1518770660439-4636190af475'
+                    ]
+                };
+                const ids = map[tag] || ['photo-1526778548025-fa2f459cd5c1'];
+                const id = ids[Math.floor(Math.random() * ids.length)];
+                return `https://images.unsplash.com/${id}?q=100&w=2500`;
+            }
         };
 
         const MusicApp = {
@@ -1566,6 +1591,10 @@ const Notifications = {
                 
                 for (let i = 0; i < Games.list.length; i++) {
                     const g = Games.list[i];
+                    let img = g.image;
+                    if (img.startsWith('RANDOM:')) {
+                        img = Utils.getRandomImage(img.split(':')[1]);
+                    }
                     let card = document.createElement('div');
                     card.className = "game-card";
                     const isCustom = i >= DefaultGames.length;
@@ -1575,7 +1604,7 @@ const Notifications = {
                     if(isCustom) html += `<div class="card-del-btn" onclick="event.stopPropagation(); Games.removeCustom(${i - DefaultGames.length})"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></div>`;
 
                     // Try to get cached image
-                    const displayImage = await ImageCache.fetchAndCache(g.image);
+                    const displayImage = await ImageCache.fetchAndCache(img);
                     html += `<div class="card-inner"><img src="${displayImage}" loading="lazy"></div><div class="card-title">${g.title}</div>`;
                     
                     card.innerHTML = html;
@@ -1685,6 +1714,13 @@ const Notifications = {
                 document.getElementById('time-toggle').checked = State.settings.time24;
                 document.getElementById('ptc-toggle').checked = State.settings.preventClose;
                 document.getElementById('bg-input').value = State.settings.bg;
+
+                // Show mobile toggle if on mobile device
+                const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if (isMobileUA) {
+                    document.getElementById('mobile-toggle-row').style.display = 'flex';
+                    document.getElementById('mobile-toggle').checked = localStorage.getItem('nx_force_desktop') !== 'true';
+                }
 
                 if(State.settings.lightMode) document.body.classList.add('light-mode');
                 Settings.setBg(State.settings.bg);
@@ -2107,16 +2143,26 @@ const Notifications = {
         };
 
         const Mobile = {
-            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && localStorage.getItem('nx_force_desktop') !== 'true',
             activeTab: 'library',
+            haptic: (type = 'light') => {
+                if (!navigator.vibrate) return;
+                if (type === 'light') navigator.vibrate(10);
+                else if (type === 'medium') navigator.vibrate(20);
+                else if (type === 'heavy') navigator.vibrate(40);
+                else if (type === 'error') navigator.vibrate([30, 50, 30]);
+            },
             init: () => {
                 if (!Mobile.isMobile) return;
 
                 document.body.classList.add('mobile-mode');
 
-                // Hide everything else
+                // Hide everything else but keep crucial overlays and scripts/styles
                 Array.from(document.body.children).forEach(child => {
-                    if (child.id !== 'mobile-interface' && child.tagName !== 'SCRIPT' && child.tagName !== 'STYLE') {
+                    const isOverlay = child.classList.contains('modal-overlay') || child.id === 'oobe-overlay';
+                    const isSystem = ['SCRIPT', 'STYLE'].includes(child.tagName) || child.id === 'mobile-interface';
+
+                    if (!isOverlay && !isSystem) {
                         child.style.display = 'none';
                     }
                 });
@@ -2262,6 +2308,7 @@ const Notifications = {
                 const content = document.getElementById('m-content');
                 if (!content) return;
                 if (Mobile.activeTab === tab && content.innerHTML !== '') return;
+                Mobile.haptic('light');
 
                 if (content.innerHTML !== '') {
                     Motion.animate(content, { opacity: 0, scale: 0.98 }, { duration: 0.15 }).finished.then(() => {
@@ -2292,7 +2339,7 @@ const Notifications = {
                 Motion.animate(content, { opacity: 1, scale: [1.02, 1] }, { duration: 0.3 });
                 lucide.createIcons();
             },
-            renderLibrary: () => {
+            renderLibrary: async () => {
                 const content = document.getElementById('m-content');
                 content.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 24px;">
@@ -2308,11 +2355,20 @@ const Notifications = {
                 const grid = document.getElementById('m-grid');
 
                 const games = [...DefaultGames, ...State.settings.customGames];
-                games.forEach((g, i) => {
+                for (let i = 0; i < games.length; i++) {
+                    const g = games[i];
+                    let img = g.image;
+                    if (img.startsWith('RANDOM:')) {
+                        img = Utils.getRandomImage(img.split(':')[1]);
+                    }
+
+                    const displayImage = await ImageCache.fetchAndCache(img);
+
                     const card = document.createElement('div');
                     card.className = 'm-card';
-                    card.innerHTML = `<img src="${g.image}" loading="lazy"><div class="m-card-label">${g.title}</div>`;
+                    card.innerHTML = `<img src="${displayImage}" loading="lazy"><div class="m-card-label">${g.title}</div>`;
                     card.onclick = () => {
+                        Mobile.haptic('medium');
                         Motion.animate(card, { scale: 0.94 }, { duration: 0.1 }).finished.then(() => {
                             Motion.animate(card, { scale: 1 }, { duration: 0.1 });
                             window.open(g.url, '_blank');
@@ -2324,15 +2380,20 @@ const Notifications = {
                         delay: i * 0.035,
                         type: "spring", stiffness: 350, damping: 28
                     });
-                });
+                }
 
                 document.getElementById('m-search-btn').onclick = () => {
+                    Mobile.haptic('light');
                     const wrap = document.getElementById('m-search-wrap');
                     const isHidden = wrap.style.display === 'none';
-                    wrap.style.display = isHidden ? 'block' : 'none';
                     if(isHidden) {
+                        wrap.style.display = 'block';
                         document.getElementById('m-search-input').focus();
-                        Motion.animate(wrap, { opacity: [0, 1], y: [-10, 0] }, { duration: 0.3 });
+                        Motion.animate(wrap, { opacity: [0, 1], y: [-10, 0], scale: [0.95, 1] }, { duration: 0.25 });
+                    } else {
+                        Motion.animate(wrap, { opacity: 0, y: -10, scale: 0.95 }, { duration: 0.2 }).finished.then(() => {
+                            wrap.style.display = 'none';
+                        });
                     }
                 };
 
@@ -2347,7 +2408,10 @@ const Notifications = {
             },
             renderMusic: () => {
                 const content = document.getElementById('m-content');
-                content.innerHTML = '<div class="m-section-title">Music</div><div id="m-music-container" style="height: 550px; border-radius: 32px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); background: #000;"></div>';
+                content.innerHTML = `
+                    <div class="m-section-title">Music</div>
+                    <div id="m-music-container" style="height: calc(100vh - 300px); min-height: 500px; border-radius: 32px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); background: #000; box-shadow: 0 20px 40px rgba(0,0,0,0.4);"></div>
+                `;
                 const container = document.getElementById('m-music-container');
                 const iframe = document.createElement('iframe');
                 iframe.style.width = '100%';
@@ -2358,16 +2422,29 @@ const Notifications = {
 
                 Motion.animate(container, { opacity: [0, 1], scale: [0.95, 1] }, { type: "spring", stiffness: 300, damping: 25 });
             },
-            renderUpdates: () => {
+            renderUpdates: (force = false) => {
+                if (force) Mobile.haptic('medium');
                 const content = document.getElementById('m-content');
                 content.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 24px;">
                         <div class="m-section-title" style="margin-bottom:0">Updates</div>
-                        <div onclick="Mobile.renderUpdates()" style="padding:8px; opacity:0.6;"><i data-lucide="refresh-cw" style="width:20px"></i></div>
+                        <div onclick="Mobile.renderUpdates(true)" style="padding:8px; opacity:0.6;"><i data-lucide="refresh-cw" style="width:20px"></i></div>
                     </div>
                     <div id="m-updates-list"></div>
                 `;
                 const list = document.getElementById('m-updates-list');
+
+                const cached = localStorage.getItem('nx_changelog_cache');
+                if (cached && !force) {
+                    const data = JSON.parse(cached);
+                    if (Date.now() - data.time < 15 * 60 * 1000) {
+                        const html = marked.parse(data.content);
+                        list.innerHTML = `<div class="m-notif-container">${html}</div>`;
+                        Motion.animate(list.firstChild, { opacity: [0, 1], scale: [0.95, 1], y: [20, 0] }, { type: "spring", stiffness: 300, damping: 25 });
+                        return;
+                    }
+                }
+
                 list.innerHTML = '<div style="color: #666; padding: 40px; text-align: center; font-weight:600;">Fetching latest news...</div>';
 
                 const proxyUrl = 'https://api.allorigins.win/raw?url=';
@@ -2376,6 +2453,7 @@ const Notifications = {
                 fetch(proxyUrl + encodeURIComponent(targetUrl))
                     .then(r => r.text())
                     .then(text => {
+                        localStorage.setItem('nx_changelog_cache', JSON.stringify({ content: text, time: Date.now() }));
                         const html = marked.parse(text);
                         list.innerHTML = `<div class="m-notif-container">${html}</div>`;
                         Motion.animate(list.firstChild, { opacity: [0, 1], scale: [0.95, 1], y: [20, 0] }, { type: "spring", stiffness: 300, damping: 25 });
@@ -2400,6 +2478,10 @@ const Notifications = {
                         <div class="m-settings-item" onclick="Modals.open('spoof-modal')">
                             <div class="m-settings-label"><i data-lucide="shield-check" style="color:var(--accent)"></i><span>Tab Cloak</span></div>
                             <i data-lucide="chevron-right" style="width: 18px; opacity: 0.4"></i>
+                        </div>
+                        <div class="m-settings-item">
+                            <div class="m-settings-label"><i data-lucide="monitor" style="color:var(--accent)"></i><span>Force Desktop Mode</span></div>
+                            <label class="switch"><input type="checkbox" ${localStorage.getItem('nx_force_desktop') === 'true' ? 'checked' : ''} onchange="localStorage.setItem('nx_force_desktop', this.checked); location.reload()"><span class="slider"></span></label>
                         </div>
                         <div class="m-settings-item" onclick="OOBE.reset()" style="margin-top:20px; border-color: rgba(239, 68, 68, 0.2);">
                             <div class="m-settings-label" style="color:#ef4444"><i data-lucide="alert-triangle"></i><span>Factory Reset</span></div>
