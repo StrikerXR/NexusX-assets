@@ -33,6 +33,8 @@
             --blur-strength: 14px;
             --radius: 12px;
             --font-stack: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --ease-elastic: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         /* --- Reset & Base --- */
@@ -177,20 +179,27 @@
             pointer-events: none;
         }
 
-        /* --- OS Window / Modal --- */
+        /* --- OS Window / Modal (REVAMPED ANIMATIONS) --- */
         .os-window {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(5px);
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(0px); /* Start with no blur */
             z-index: 1000;
-            display: none;
+            display: flex; /* Kept as flex, hidden via visibility */
+            visibility: hidden;
             opacity: 0;
-            transition: opacity 0.3s;
+            transition: opacity 0.3s var(--ease-smooth), backdrop-filter 0.3s var(--ease-smooth), visibility 0.3s;
             align-items: center;
             justify-content: center;
         }
-        .os-window.active { display: flex; opacity: 1; }
+        
+        /* Active State for Background */
+        .os-window.active { 
+            visibility: visible;
+            opacity: 1; 
+            backdrop-filter: blur(10px); /* Animate to blur */
+        }
 
         .window-content {
             width: 90%;
@@ -202,8 +211,19 @@
             overflow: hidden;
             background: #111;
             border: 1px solid var(--border-glass);
+            
+            /* Animation Properties */
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
+            transition: transform 0.4s var(--ease-elastic), opacity 0.3s ease;
         }
         
+        /* Active State for Content */
+        .os-window.active .window-content {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
         .window-bar {
             padding: 10px 20px;
             background: rgba(20,20,20,0.95);
@@ -240,6 +260,11 @@
             width: 400px;
             height: auto;
             max-height: 80vh;
+            /* Enhanced Blur for Settings UI */
+            background: rgba(20, 20, 20, 0.75) !important;
+            backdrop-filter: blur(25px) !important;
+            -webkit-backdrop-filter: blur(25px) !important;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
         .popup-body { padding: 20px; overflow-y: auto; }
         .nexus-btn {
@@ -252,7 +277,9 @@
             cursor: pointer;
             margin-bottom: 10px;
             font-weight: 600;
+            transition: transform 0.1s;
         }
+        .nexus-btn:active { transform: scale(0.98); }
         .nexus-input {
             width: 100%;
             padding: 8px;
@@ -286,12 +313,12 @@
 
     <!-- Header -->
     <header class="glass-panel">
-        <div class="brand">NexusOS <span>GNMath SE</span></div>
+        <div class="brand">NexusX <span>GNMath SE</span></div>
         <div class="search-wrapper">
-            <input type="text" id="searchInput" placeholder="Search Nexus Database..." autocomplete="off">
+            <input type="text" id="searchInput" placeholder="Search with AI..." autocomplete="off">
         </div>
         <div class="window-controls">
-            <button onclick="toggleSettings()">⚙️ System</button>
+            <button onclick="toggleSettings()">⚙️ Settings</button>
         </div>
     </header>
 
@@ -421,8 +448,12 @@
                         fetch(Config.statsURL).catch(() => ({ json: () => [] })) // Fail gracefully
                     ]);
                     
-                    Nexus.state.zones = await zonesRes.json();
+                    let rawZones = await zonesRes.json();
                     
+                    // --- SECURITY: Filter out Spam/Solicitation ---
+                    // Explicitly removes the "[!] SUGGEST GAMES" tile
+                    Nexus.state.zones = rawZones.filter(z => z.name !== "[!] SUGGEST GAMES .gg/D4c9VFYWyU");
+
                     // Process popularity map
                     const stats = await statsRes.json();
                     if(Array.isArray(stats)) {
@@ -432,8 +463,9 @@
                         });
                     }
 
-                    // Force Discord as #1 featured
-                    Nexus.state.zones[0].featured = true;
+                    // Force Discord as #1 featured (safe check)
+                    if(Nexus.state.zones.length > 0) Nexus.state.zones[0].featured = true;
+                    
                     Nexus.state.isLoaded = true;
                 } catch (e) {
                     document.getElementById('mainGrid').innerHTML = `<div style="color:red">System Failure: ${e.message}</div>`;
@@ -575,7 +607,12 @@
             player: {
                 close: () => {
                     document.getElementById('gameWindow').classList.remove('active');
-                    document.getElementById('gwFrame').srcdoc = '';
+                    // Wait for CSS transition (300ms) before clearing content to avoid flash
+                    setTimeout(() => {
+                         if(!document.getElementById('gameWindow').classList.contains('active')) {
+                             document.getElementById('gwFrame').srcdoc = '';
+                         }
+                    }, 300); 
                     const url = new URL(window.location);
                     url.searchParams.delete('id');
                     history.pushState(null, '', url);
