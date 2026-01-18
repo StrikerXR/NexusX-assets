@@ -319,10 +319,11 @@
         .carousel-track::-webkit-scrollbar { display: none; }
 
         /* --- GAME CARD --- */
-        .game-card { min-width: 240px; height: 340px; border-radius: 24px; position: relative; cursor: pointer; perspective: 1000px; }
+        .game-card { min-width: 240px; height: 340px; border-radius: 24px; position: relative; cursor: pointer; perspective: 1000px; will-change: transform; }
         .card-inner {
             width: 100%; height: 100%; border-radius: 24px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
             background: var(--card-bg); box-shadow: 0 15px 35px rgba(0,0,0,0.3); transition: transform 0.1s linear; position: relative;
+            backface-visibility: hidden; transform-style: preserve-3d;
         }
         .card-inner img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s var(--fluid), filter 0.5s; filter: brightness(0.8); }
         .game-card:hover .card-inner { box-shadow: 0 0 30px var(--accent-glow); border-color: rgba(255,255,255,0.3); }
@@ -528,6 +529,56 @@
         </div>
     </div>
 
+    <!-- TILT SETTINGS MODAL -->
+    <div id="tilt-modal" class="modal-overlay">
+        <div class="modal-box" style="width: 800px; max-width: 95%;">
+            <div class="modal-header">
+                <span class="modal-title">3D Tilt Customization</span>
+                <button class="btn btn-danger" style="padding:6px 12px;" onclick="Modals.close('tilt-modal')">Close</button>
+            </div>
+            <div style="display: flex; gap: 30px; height: 100%; overflow: hidden;">
+                <!-- Left: Controls -->
+                <div style="flex: 1; overflow-y: auto; padding-right: 10px;">
+                    <div class="st-group">
+                        <h3>Presets</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <button class="btn btn-ghost" onclick="TiltSettings.applyPreset('off')">Off</button>
+                            <button class="btn btn-ghost" onclick="TiltSettings.applyPreset('subtle')">Subtle</button>
+                            <button class="btn btn-ghost" onclick="TiltSettings.applyPreset('normal')">Normal</button>
+                            <button class="btn btn-ghost" onclick="TiltSettings.applyPreset('extreme')">Extreme</button>
+                        </div>
+                    </div>
+
+                    <div class="st-group">
+                        <h3>Fine Tuning</h3>
+                        <div class="control-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                            <span>Intensity: <span id="tilt-v-intensity" style="color:var(--accent)">500</span></span>
+                            <input type="range" id="tilt-s-intensity" min="0" max="1000" step="10" class="range-slider" oninput="TiltSettings.update()">
+                        </div>
+                        <div class="control-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                            <span>Glare Opacity: <span id="tilt-v-glare" style="color:var(--accent)">0.2</span></span>
+                            <input type="range" id="tilt-s-glare" min="0" max="1" step="0.05" class="range-slider" oninput="TiltSettings.update()">
+                        </div>
+                        <div class="control-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                            <span>Perspective: <span id="tilt-v-persp" style="color:var(--accent)">1000</span></span>
+                            <input type="range" id="tilt-s-persp" min="500" max="2000" step="50" class="range-slider" oninput="TiltSettings.update()">
+                        </div>
+                        <div class="control-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                            <span>Hover Scale: <span id="tilt-v-scale" style="color:var(--accent)">1.05</span></span>
+                            <input type="range" id="tilt-s-scale" min="1" max="1.2" step="0.01" class="range-slider" oninput="TiltSettings.update()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Preview -->
+                <div style="width: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;">
+                    <span style="font-weight: 700; color: var(--text-dim);">Live Preview</span>
+                    <div id="tilt-preview-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- SECURITY NOTES MODAL -->
     <div id="security-notes-modal" class="modal-overlay">
         <div class="modal-box">
@@ -687,9 +738,9 @@
                                 <span>Tab Cloak</span>
                                 <button class="btn btn-ghost" onclick="Modals.open('spoof-modal')">Change</button>
                             </div>
-                            <div class="control-row" style="flex-direction:column; align-items:flex-start; gap:10px; margin-top:15px;">
-                                <span>3D Tilt Intensity: <span id="tilt-val" style="color:var(--accent)">500</span></span>
-                                <input type="range" min="0" max="1000" value="500" class="range-slider" oninput="Settings.setTilt(this.value)">
+                            <div class="control-row">
+                                <span>3D Tilt FX</span>
+                                <button class="btn btn-ghost" onclick="TiltSettings.open()">Configure Tilt...</button>
                             </div>
                         </div>
 
@@ -1224,7 +1275,13 @@ const musicPlayerHTML = `<!DOCTYPE html>
                 bg: localStorage.getItem('nx_bg') || '',
                 todos: JSON.parse(localStorage.getItem('nx_todos') || '[]'),
                 lightMode: localStorage.getItem('nx_light') === 'true',
-                tilt: parseInt(localStorage.getItem('nx_tilt') || '500'),
+                tilt: {
+                    intensity: parseInt(localStorage.getItem('nx_tilt_intensity') || '500'),
+                    glare: parseFloat(localStorage.getItem('nx_tilt_glare') || '0.2'),
+                    perspective: parseInt(localStorage.getItem('nx_tilt_persp') || '1000'),
+                    scale: parseFloat(localStorage.getItem('nx_tilt_scale') || '1.05'),
+                    enabled: localStorage.getItem('nx_tilt_enabled') !== 'false'
+                },
                 customGames: JSON.parse(localStorage.getItem('nx_custom_games') || '[]')
             }
         };
@@ -1517,11 +1574,14 @@ const Notifications = {
                 const glare = inner.querySelector('.glare');
 
                 card.addEventListener('mousemove', (e) => {
+                    const cfg = State.settings.tilt;
+                    if (!cfg.enabled || cfg.intensity === 0) return;
+
                     const rect = card.getBoundingClientRect();
-                    const tiltFactor = State.settings.tilt / 500; // Normalized around 500
+                    const tiltFactor = cfg.intensity / 500; // Normalized around 500
                     const maxRot = 20 * tiltFactor;
-                    const perspective = 1000;
-                    const scale = 1.05;
+                    const perspective = cfg.perspective;
+                    const scale = cfg.scale;
 
                     const x = (e.clientX - rect.left) / rect.width; // 0 to 1
                     const y = (e.clientY - rect.top) / rect.height; // 0 to 1
@@ -1532,13 +1592,13 @@ const Notifications = {
                     inner.style.transition = 'transform 0.1s ease-out';
                     inner.style.transform = `perspective(${perspective}px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) scale3d(${scale}, ${scale}, ${scale})`;
 
-                    glare.style.opacity = '1';
-                    glare.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(255,255,255,0.2) 0%, transparent 80%)`;
+                    glare.style.opacity = cfg.glare;
+                    glare.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(255,255,255,${cfg.glare * 1.5}) 0%, transparent 80%)`;
                 });
 
                 card.addEventListener('mouseleave', () => {
                     inner.style.transition = 'transform 0.5s var(--fluid)';
-                    inner.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+                    inner.style.transform = `perspective(${State.settings.tilt.perspective}px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
                     glare.style.opacity = '0';
                 });
             },
@@ -1559,8 +1619,6 @@ const Notifications = {
                 document.getElementById('time-toggle').checked = State.settings.time24;
                 document.getElementById('ptc-toggle').checked = State.settings.preventClose;
                 document.getElementById('bg-input').value = State.settings.bg;
-                document.getElementById('tilt-val').innerText = State.settings.tilt;
-                document.querySelector('.range-slider').value = State.settings.tilt;
 
                 if(State.settings.lightMode) document.body.classList.add('light-mode');
                 Settings.setBg(State.settings.bg);
@@ -1592,11 +1650,6 @@ const Notifications = {
                     wrap.style.backgroundImage = 'none';
                     document.getElementById('bg-default').style.opacity = 1;
                 }
-            },
-            setTilt: (val) => {
-                State.settings.tilt = parseInt(val);
-                document.getElementById('tilt-val').innerText = val;
-                Settings.save('nx_tilt', val);
             },
             setCloak: (id) => {
                 State.settings.cloak = id;
@@ -1864,6 +1917,76 @@ const Notifications = {
             }
         };
 
+        const TiltSettings = {
+            presets: {
+                off: { intensity: 0, glare: 0, perspective: 1000, scale: 1, enabled: false },
+                subtle: { intensity: 200, glare: 0.1, perspective: 1500, scale: 1.02, enabled: true },
+                normal: { intensity: 500, glare: 0.2, perspective: 1000, scale: 1.05, enabled: true },
+                extreme: { intensity: 1000, glare: 0.4, perspective: 800, scale: 1.1, enabled: true }
+            },
+            open: () => {
+                const cfg = State.settings.tilt;
+                document.getElementById('tilt-s-intensity').value = cfg.intensity;
+                document.getElementById('tilt-s-glare').value = cfg.glare;
+                document.getElementById('tilt-s-persp').value = cfg.perspective;
+                document.getElementById('tilt-s-scale').value = cfg.scale;
+
+                TiltSettings.updateLabels();
+                TiltSettings.renderPreview();
+                Modals.open('tilt-modal');
+            },
+            updateLabels: () => {
+                const cfg = State.settings.tilt;
+                document.getElementById('tilt-v-intensity').innerText = cfg.intensity;
+                document.getElementById('tilt-v-glare').innerText = cfg.glare;
+                document.getElementById('tilt-v-persp').innerText = cfg.perspective;
+                document.getElementById('tilt-v-scale').innerText = cfg.scale;
+            },
+            update: () => {
+                State.settings.tilt = {
+                    intensity: parseInt(document.getElementById('tilt-s-intensity').value),
+                    glare: parseFloat(document.getElementById('tilt-s-glare').value),
+                    perspective: parseInt(document.getElementById('tilt-s-persp').value),
+                    scale: parseFloat(document.getElementById('tilt-s-scale').value),
+                    enabled: parseInt(document.getElementById('tilt-s-intensity').value) > 0
+                };
+
+                const cfg = State.settings.tilt;
+                Settings.save('nx_tilt_intensity', cfg.intensity);
+                Settings.save('nx_tilt_glare', cfg.glare);
+                Settings.save('nx_tilt_persp', cfg.perspective);
+                Settings.save('nx_tilt_scale', cfg.scale);
+                Settings.save('nx_tilt_enabled', cfg.enabled);
+
+                TiltSettings.updateLabels();
+            },
+            applyPreset: (p) => {
+                const preset = TiltSettings.presets[p];
+                State.settings.tilt = { ...preset };
+
+                document.getElementById('tilt-s-intensity').value = preset.intensity;
+                document.getElementById('tilt-s-glare').value = preset.glare;
+                document.getElementById('tilt-s-persp').value = preset.perspective;
+                document.getElementById('tilt-s-scale').value = preset.scale;
+
+                TiltSettings.update();
+            },
+            renderPreview: () => {
+                const container = document.getElementById('tilt-preview-container');
+                container.innerHTML = '';
+                const card = document.createElement('div');
+                card.className = 'game-card';
+                card.style.minWidth = '200px';
+                card.style.height = '280px';
+                card.innerHTML = `<div class="card-inner"><img src="https://images.unsplash.com/photo-1768185595034-69de2bfe7848"></div><div class="card-title">EXAMPLE</div>`;
+                Games.addTilt(card);
+                container.appendChild(card);
+
+                // Trigger reveal
+                Motion.animate(card, { opacity: [0, 1], scale: [0.8, 1] }, { type: "spring", stiffness: 300, damping: 20 });
+            }
+        };
+
         const About = {
             init: () => {
                 document.getElementById('about-version').innerText = CONFIG.version;
@@ -1884,14 +2007,33 @@ const Notifications = {
             set: (v, instant = false) => {
                 const items = document.querySelectorAll('.nav-item');
                 const views = document.querySelectorAll('.content-view');
-                items.forEach(n => n.classList.remove('active'));
-                views.forEach(c => c.classList.remove('active-view'));
                 
                 const idx = v === 'games' ? 0 : 1;
                 const activeItem = items[idx];
+                const viewEl = document.getElementById(v+'-view');
+
+                if (viewEl.classList.contains('active-view')) return;
+
+                // Handle Outgoing
+                const currentView = document.querySelector('.content-view.active-view');
+                if (currentView && !instant) {
+                    Motion.animate(currentView, {
+                        opacity: 0,
+                        scale: 0.96,
+                        y: -20
+                    }, {
+                        duration: 0.4,
+                        easing: [0.4, 0, 0.2, 1]
+                    }).finished.then(() => {
+                        currentView.classList.remove('active-view');
+                    });
+                } else if (currentView) {
+                    currentView.classList.remove('active-view');
+                }
+
+                items.forEach(n => n.classList.remove('active'));
                 activeItem.classList.add('active');
 
-                const viewEl = document.getElementById(v+'-view');
                 viewEl.classList.add('active-view');
 
                 if (!instant) {
