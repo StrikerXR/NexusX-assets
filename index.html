@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusOS 13.3</title>
+    <title>NexusOS 14.0</title>
     <link id="favicon" rel="icon" href="https://www.google.com/favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
     <!-- LUCIDE ICONS -->
     <script src="https://unpkg.com/lucide@0.562.0/dist/umd/lucide.min.js" integrity="sha384-FmRlymRnpgjuKyAnwH4DftRjl+RqHOlfcw9k4xcpPyovclg/2RZRrvw7qe1koVCP" crossorigin="anonymous"></script>
     <!-- MOTION 12 -->
-    <script src="https://cdn.jsdelivr.net/npm/motion@12.0.1/dist/motion.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/motion@12.27.0/dist/motion.js"></script>
     <style>
         :root {
             /* --- THEME VARIABLES --- */
@@ -472,13 +472,13 @@
     <!-- OOBE LAYER (Pill UI) -->
     <div id="oobe-overlay">
         <div class="pill-container">
-            <div class="pill-header">NexusOS 13.3</div>
+            <div class="pill-header">NexusOS 14.0</div>
             <div class="pill-desc">Select a Tab Cloak to begin your session.</div>
             
             <!-- In-Pill Spoof Grid -->
             <div class="spoof-grid" id="oobe-spoof-grid" style="max-height: 200px; margin-bottom: 25px;"></div>
             
-            <button class="btn btn-primary" style="width:100%" onclick="OOBE.finish()">Enter System</button>
+            <button class="btn btn-primary" style="width:100%" onclick="OOBE.complete()">Enter System</button>
         </div>
     </div>
 
@@ -1256,14 +1256,14 @@ const musicPlayerHTML = `<!DOCTYPE html>
 </html>`;
         /* --- STATE --- */
         const CONFIG = {
-            version: "13.3",
-            patchLevel: "January 21 2026",
+            version: "14.0",
+            patchLevel: "January 22 2026",
             libs: {
                 marked: "17.0.1",
                 lucide: "0.562.0",
                 fontAwesome: "7.1.0",
                 musicMetadata: "11.10.6",
-                motion: "12.0.1"
+                motion: "12.27.0"
             }
         };
 
@@ -1428,25 +1428,26 @@ const musicPlayerHTML = `<!DOCTYPE html>
                     const targetOpacity = [0, 1];
 
                     if (isMoved) {
-                        Motion.animate(win, { opacity: targetOpacity, scale: targetScale }, {
-                            type: "spring", stiffness: 300, damping: 25
+                        Motion.animate(win, { opacity: targetOpacity, scale: targetScale, filter: ['blur(10px)', 'blur(0px)'] }, {
+                            type: "spring", stiffness: 450, damping: 30
                         });
                     } else {
                         // Original centered position
                         Motion.animate(win, {
                             opacity: targetOpacity,
-                            transform: ['translate(-50%, -50%) scale(0.9)', 'translate(-50%, -50%) scale(1)']
+                            transform: ['translate(-50%, -50%) scale(0.8)', 'translate(-50%, -50%) scale(1)'],
+                            filter: ['blur(10px)', 'blur(0px)']
                         }, {
-                            type: "spring", stiffness: 300, damping: 25
+                            type: "spring", stiffness: 450, damping: 30
                         });
                     }
                 } else {
                     const isMoved = win.style.transform === 'none';
                     const anim = isMoved
-                        ? Motion.animate(win, { opacity: 0, scale: 0.9 }, { duration: 0.3 })
-                        : Motion.animate(win, { opacity: 0, transform: 'translate(-50%, -50%) scale(0.9)' }, { duration: 0.3 });
+                        ? Motion.animate(win, { opacity: 0, scale: 0.85, filter: 'blur(10px)' }, { duration: 0.4, ease: [0.4, 0, 0.2, 1] })
+                        : Motion.animate(win, { opacity: 0, transform: 'translate(-50%, -50%) scale(0.85)', filter: 'blur(10px)' }, { duration: 0.4, ease: [0.4, 0, 0.2, 1] });
 
-                    anim.finished.then(() => win.classList.remove('active'));
+                    anim.then(() => win.classList.remove('active'));
                 }
             },
             initDraggable: () => {
@@ -1496,13 +1497,13 @@ const Notifications = {
                 if (isActive) {
                     if (todo.classList.contains('active')) Todo.toggle();
                     el.classList.add('active');
-                    Motion.animate(el, { opacity: [0, 1], scale: [0.9, 1], y: [-20, 0] }, {
-                        type: "spring", stiffness: 400, damping: 30
+                    Motion.animate(el, { opacity: [0, 1], scale: [0.9, 1], y: [-20, 0], filter: ['blur(10px)', 'blur(0px)'] }, {
+                        type: "spring", stiffness: 500, damping: 35
                     });
                     if(!Notifications.loaded) Notifications.reload();
                 } else {
-                    Motion.animate(el, { opacity: 0, scale: 0.9, y: -20 }, { duration: 0.3 })
-                        .finished.then(() => el.classList.remove('active'));
+                    Motion.animate(el, { opacity: 0, scale: 0.9, y: -20, filter: 'blur(10px)' }, { duration: 0.4, ease: [0.4, 0, 0.2, 1] })
+                        .then(() => el.classList.remove('active'));
                 }
             },
             reload: () => {
@@ -1585,9 +1586,9 @@ const Notifications = {
                     track.appendChild(card);
 
                     // Staggered Animation
-                    Motion.animate(card, { opacity: [0, 1], y: [40, 0], scale: [0.8, 1] }, {
-                        delay: i * 0.05,
-                        type: "spring", stiffness: 200, damping: 20
+                    Motion.animate(card, { opacity: [0, 1], y: [40, 0], scale: [0.8, 1], filter: ['blur(10px)', 'blur(0px)'] }, {
+                        delay: i * 0.04,
+                        type: "spring", stiffness: 300, damping: 25
                     });
                 }
 
@@ -1598,9 +1599,9 @@ const Notifications = {
                 Games.addTilt(addTile);
                 track.appendChild(addTile);
 
-                Motion.animate(addTile, { opacity: [0, 1], y: [40, 0], scale: [0.8, 1] }, {
-                    delay: Games.list.length * 0.05,
-                    type: "spring", stiffness: 200, damping: 20
+                Motion.animate(addTile, { opacity: [0, 1], y: [40, 0], scale: [0.8, 1], filter: ['blur(10px)', 'blur(0px)'] }, {
+                    delay: Games.list.length * 0.04,
+                    type: "spring", stiffness: 300, damping: 25
                 });
 
                 Games.hero(0);
@@ -1675,7 +1676,7 @@ const Notifications = {
 
                 Motion.animate((progress) => {
                     track.scrollLeft = start + (end - start) * progress;
-                }, { duration: 0.6, easing: [0.25, 1, 0.5, 1] });
+                }, { duration: 0.6, ease: [0.25, 1, 0.5, 1] });
             }
         };
 
@@ -1742,8 +1743,35 @@ const Notifications = {
                     h = h % 12;
                     if(h === 0) h = 12;
                 }
-                const mStr = m < 10 ? '0'+m : m;
-                Clock.el.textContent = `${h}:${mStr}`;
+                const hStr = String(h);
+                const mStr = m < 10 ? '0'+m : String(m);
+                const fullStr = hStr + ':' + mStr;
+
+                if (Clock.el.dataset.time === fullStr) return;
+
+                if (!Clock.el.innerHTML || Clock.el.dataset.time?.length !== fullStr.length) {
+                    Clock.el.innerHTML = '';
+                    Clock.el.style.display = 'flex';
+                    Clock.el.style.justifyContent = 'center';
+                    [...fullStr].forEach(char => {
+                        const span = document.createElement('span');
+                        span.textContent = char;
+                        span.style.display = 'inline-block';
+                        Clock.el.appendChild(span);
+                    });
+                } else {
+                    [...fullStr].forEach((char, i) => {
+                        const span = Clock.el.children[i];
+                        if (span && span.textContent !== char) {
+                            Motion.animate(span,
+                                { y: [-15, 0], opacity: [0, 1], filter: ['blur(4px)', 'blur(0px)'] },
+                                { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+                            );
+                            span.textContent = char;
+                        }
+                    });
+                }
+                Clock.el.dataset.time = fullStr;
             }
         };
 
@@ -1756,20 +1784,18 @@ const Notifications = {
                 if (isActive) {
                     if (notif.classList.contains('active')) Notifications.toggle();
                     el.classList.add('active');
-                    Motion.animate(el, { opacity: [0, 1], scale: [0.9, 1], y: [-20, 0] }, {
-                        type: "spring", stiffness: 400, damping: 30
+                    Motion.animate(el, { opacity: [0, 1], scale: [0.9, 1], y: [-20, 0], filter: ['blur(10px)', 'blur(0px)'] }, {
+                        type: "spring", stiffness: 500, damping: 35
                     });
 
                     // Interior Stagger
-                    setTimeout(() => {
-                        const header = el.querySelector('.todo-header');
-                        const inputGroup = el.querySelector('.todo-input-group');
-                        Motion.animate(header, { opacity: [0, 1], x: [-10, 0] }, { duration: 0.3 });
-                        Motion.animate(inputGroup, { opacity: [0, 1], y: [10, 0] }, { duration: 0.4, delay: 0.1 });
-                    }, 50);
+                    const header = el.querySelector('.todo-header');
+                    const inputGroup = el.querySelector('.todo-input-group');
+                    Motion.animate(header, { opacity: [0, 1], x: [-15, 0] }, { duration: 0.4, delay: 0.1 });
+                    Motion.animate(inputGroup, { opacity: [0, 1], y: [15, 0] }, { duration: 0.5, delay: 0.15 });
                 } else {
-                    Motion.animate(el, { opacity: 0, scale: 0.9, y: -20 }, { duration: 0.3 })
-                        .finished.then(() => el.classList.remove('active'));
+                    Motion.animate(el, { opacity: 0, scale: 0.9, y: -20, filter: 'blur(10px)' }, { duration: 0.4, ease: [0.4, 0, 0.2, 1] })
+                        .then(() => el.classList.remove('active'));
                 }
             },
             handleInput: (e) => { if(e.key==='Enter') Todo.add(); },
@@ -1917,23 +1943,23 @@ const Notifications = {
                 const box = el.querySelector('.modal-box');
                 el.style.display = 'flex';
                 el.classList.add('active');
-                Motion.animate(el, { opacity: [0, 1] }, { duration: 0.4 });
+                Motion.animate(el, { opacity: [0, 1], backdropFilter: ['blur(0px)', 'blur(8px)'] }, { duration: 0.5 });
                 if (box) {
-                    Motion.animate(box, { scale: [0.9, 1], y: [30, 0] }, {
+                    Motion.animate(box, { scale: [0.8, 1], y: [40, 0], opacity: [0, 1], filter: ['blur(15px)', 'blur(0px)'] }, {
                         type: "spring",
-                        stiffness: 400,
-                        damping: 30
+                        stiffness: 450,
+                        damping: 32
                     });
                 }
             },
             close: (id) => {
                 const el = document.getElementById(id);
                 const box = el.querySelector('.modal-box');
-                const anims = [Motion.animate(el, { opacity: 0 }, { duration: 0.3 })];
+                const anims = [Motion.animate(el, { opacity: 0, backdropFilter: 'blur(0px)' }, { duration: 0.4 })];
                 if (box) {
-                    anims.push(Motion.animate(box, { scale: 0.9, y: 30 }, { duration: 0.3 }));
+                    anims.push(Motion.animate(box, { scale: 0.8, y: 40, opacity: 0, filter: 'blur(15px)' }, { duration: 0.4, ease: [0.4, 0, 0.2, 1] }));
                 }
-                Promise.all(anims.map(a => a.finished)).then(() => {
+                Promise.all(anims).then(() => {
                     el.classList.remove('active');
                     el.style.display = '';
                 });
@@ -2122,12 +2148,13 @@ const Notifications = {
                 if (currentView && !instant) {
                     Motion.animate(currentView, {
                         opacity: 0,
-                        scale: 0.96,
-                        y: -20
+                        scale: 0.94,
+                        y: -30,
+                        filter: 'blur(10px)'
                     }, {
-                        duration: 0.4,
-                        easing: [0.4, 0, 0.2, 1]
-                    }).finished.then(() => {
+                        duration: 0.5,
+                        ease: [0.4, 0, 0.2, 1]
+                    }).then(() => {
                         currentView.classList.remove('active-view');
                     });
                 } else if (currentView) {
@@ -2142,11 +2169,11 @@ const Notifications = {
                 if (!instant) {
                     Motion.animate(viewEl, {
                         opacity: [0, 1],
-                        scale: [0.96, 1],
-                        y: [20, 0]
+                        scale: [0.94, 1],
+                        y: [30, 0],
+                        filter: ['blur(10px)', 'blur(0px)']
                     }, {
-                        duration: 0.5,
-                        easing: [0.25, 1, 0.5, 1]
+                        type: "spring", stiffness: 400, damping: 30
                     });
                 }
 
@@ -2195,7 +2222,7 @@ const Notifications = {
                     document.getElementById('main-interface').classList.add('unlocked');
                 }
             },
-            finish: () => {
+            complete: () => {
                 localStorage.setItem(State.oobeKey, 'true');
                 document.getElementById('oobe-overlay').classList.remove('active');
                 setTimeout(() => {
