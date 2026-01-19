@@ -138,6 +138,7 @@
             padding: 30px; width: 500px; max-width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             display: flex; flex-direction: column; max-height: 85vh;
         }
+        .modal-box.wide { width: 800px; max-width: 95%; }
         .modal-overlay.active .modal-box { transform: scale(1) translateY(0); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .modal-title { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
@@ -445,9 +446,6 @@
         .scroll-arrow:hover { background: var(--text-main); color: var(--bg-base); }
         .scroll-arrow.left { left: 30px; } .scroll-arrow.right { right: 30px; }
 
-        @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
-        @keyframes fadeUp { from{opacity:0; transform:translateY(30px);} to{opacity:1; transform:translateY(0);} }
-
         /* --- FLOATING MUSIC WINDOW --- */
         #music-window {
             position: absolute; top: 50%; left: 50%; width: 950px; height: 650px;
@@ -539,7 +537,7 @@
 
     <!-- TILT SETTINGS MODAL -->
     <div id="tilt-modal" class="modal-overlay">
-        <div class="modal-box" style="width: 800px; max-width: 95%;">
+        <div class="modal-box wide">
             <div class="modal-header">
                 <span class="modal-title">3D Tilt Customization</span>
                 <button class="btn btn-danger" style="padding:6px 12px;" onclick="Modals.close('tilt-modal')">Close</button>
@@ -796,116 +794,50 @@
     </div>
 
     <script>
-/* --- MUSIC PLAYER CODE (FIXED: Metadata, Squiggle, Easter Egg, Escaped) --- */
 const musicPlayerHTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Nexus Player</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css" integrity="sha384-YgSbYtJcfPnMV/aJ0UdQk84ctht/ckX0MrfQwxOhw43RMBw2WSaDSMVh4gQwLdE4" crossorigin="anonymous">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js" integrity="sha384-c6Uo4N9c3SOEigMVzP6IshUG1wQ5uMp3xeoQFiHWAQ86joWdgyajkvopySyKy/Z6" crossorigin="anonymous"><\/script>
-    <script src="https://cdn.jsdelivr.net/npm/buffer@6.0.3/index.min.js" integrity="sha384-90id7S86mXvYfS998f48G5Y46/X/uU7vO+AUnS4v0BfNcs9Xo7oG/YtJ5Ew/u7u" crossorigin="anonymous"><\/script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/buffer@6.0.3/index.min.js"><\/script>
     <script src="https://cdn.jsdelivr.net/npm/motion@12.27.0/dist/motion.js"><\/script>
-    <script>
-        try {
-            window.Buffer = window.Buffer || (typeof buffer !== 'undefined' ? buffer.Buffer : null);
-        } catch(e) { console.error("Buffer polyfill error", e); }
-    <\/script>
+    <script>window.Buffer = window.Buffer || (typeof buffer !== 'undefined' ? buffer.Buffer : null);<\/script>
     <style>
-        :root {
-            --bg-oled: #050505;
-            --accent: #007bff;
-            --accent-glow: rgba(0, 123, 255, 0.5);
-            --glass: rgba(20, 20, 20, 0.7);
-            --border: rgba(255, 255, 255, 0.1);
-            --text: #ffffff;
-            --text-dim: #a0a0a0;
-        }
+        :root { --bg-oled: #050505; --accent: #007bff; --accent-glow: rgba(0, 123, 255, 0.5); --glass: rgba(20, 20, 20, 0.7); --border: rgba(255, 255, 255, 0.1); --text: #ffffff; --text-dim: #a0a0a0; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; user-select: none; }
         body { background-color: var(--bg-oled); color: var(--text); height: 100vh; width: 100vw; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-        
-        /* BACKGROUND & SHELL */
-        .ambient-glow { 
-            position: absolute; width: 100vw; height: 100vh; 
-            background: radial-gradient(circle at 50% 50%, var(--accent-glow) 0%, transparent 70%);
-            z-index: 0; pointer-events: none; opacity: 0.5;
-        }
-        .nexus-shell {
-            width: 100%; height: 100%;
-            background: var(--glass);
-            backdrop-filter: blur(60px) saturate(160%);
-            -webkit-backdrop-filter: blur(60px) saturate(160%);
-            display: flex; overflow: hidden; position: relative; z-index: 10;
-            transition: transform 0.5s ease, filter 0.5s ease;
-        }
-
-        /* LAYOUT ZONES */
+        .ambient-glow { position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, var(--accent-glow) 0%, transparent 70%); z-index: 0; pointer-events: none; opacity: 0.5; }
+        .nexus-shell { width: 100%; height: 100%; background: var(--glass); backdrop-filter: blur(60px) saturate(160%); -webkit-backdrop-filter: blur(60px) saturate(160%); display: flex; overflow: hidden; position: relative; z-index: 10; }
         .zone-left { flex: 1; padding: 25px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--border); min-width: 300px; }
         .zone-right { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); min-width: 250px; }
-        
-        /* ARTWORK */
-        .art-wrapper { 
-            width: 100%; max-height: 40vh; aspect-ratio: 1/1; border-radius: 16px; overflow: hidden; 
-            box-shadow: 0 25px 60px rgba(0,0,0,0.8); position: relative; 
-            border: 1px solid var(--border); background: #000; margin: 0 auto;
-        }
+        .art-wrapper { width: 100%; max-height: 40vh; aspect-ratio: 1/1; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.8); position: relative; border: 1px solid var(--border); background: #000; margin: 0 auto; }
         #cover-img { width: 100%; height: 100%; object-fit: cover; }
-        
-        /* TRACK INFO */
         .track-info { margin-top: 15px; flex-shrink: 0; text-align: center; }
         .track-title { font-size: 1.8rem; font-weight: 800; letter-spacing: -1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .track-artist { font-size: 0.9rem; color: var(--accent); font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px; }
-
-        /* SQUIGGLE SEEK BAR CONTAINER */
-        .seek-container {
-            position: relative; width: 100%; height: 40px; margin: 10px 0;
-            display: flex; align-items: center; justify-content: center;
-        }
-        /* The invisible slider that captures clicks */
-        input[type=range].seek-input {
-            position: absolute; width: 100%; height: 100%; opacity: 0; z-index: 5; cursor: pointer; margin: 0;
-        }
-        /* The SVG Visual */
-        .seek-visual {
-            width: 100%; height: 100%; pointer-events: none;
-        }
+        .seek-container { position: relative; width: 100%; height: 40px; margin: 10px 0; display: flex; align-items: center; justify-content: center; }
+        input[type=range].seek-input { position: absolute; width: 100%; height: 100%; opacity: 0; z-index: 5; cursor: pointer; margin: 0; }
+        .seek-visual { width: 100%; height: 100%; pointer-events: none; }
         .squiggle-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3px; stroke-linecap: round; }
-        .squiggle-progress { 
-            fill: none; stroke: var(--accent); stroke-width: 3px; stroke-linecap: round;
-            stroke-dasharray: 1000; stroke-dashoffset: 1000; /* Will be manipulated by JS */
-            filter: drop-shadow(0 0 5px var(--accent-glow));
-        }
-
+        .squiggle-progress { fill: none; stroke: var(--accent); stroke-width: 3px; stroke-linecap: round; stroke-dasharray: 1000; stroke-dashoffset: 1000; filter: drop-shadow(0 0 5px var(--accent-glow)); }
         .time-display { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-dim); font-family: monospace; }
-        
-        /* CONTROLS */
         .main-buttons { display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 10px; }
         .btn { background: none; border: none; color: var(--text); font-size: 1.4rem; cursor: pointer; transition: 0.3s; opacity: 0.8; }
         .btn:hover { color: var(--accent); opacity: 1; transform: scale(1.1); }
         .btn-play { width: 55px; height: 55px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px var(--accent-glow); }
-        
-        .range-slider {
-            width: 100%; -webkit-appearance: none; background: rgba(255,255,255,0.1);
-            height: 4px; border-radius: 2px; cursor: pointer;
-        }
-        .range-slider::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
-            background: var(--accent); box-shadow: 0 0 10px var(--accent-glow);
-        }
-
-        /* PLAYLIST & RIGHT ZONE */
+        .range-slider { width: 100%; -webkit-appearance: none; background: rgba(255,255,255,0.1); height: 4px; border-radius: 2px; cursor: pointer; }
+        .range-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
         .header-bar { padding: 30px; display: flex; justify-content: space-between; align-items: center; }
         .brand { font-weight: 900; letter-spacing: 3px; font-size: 1.1rem; }
         .brand span { color: var(--accent); }
         .file-upload-label { background: var(--accent); padding: 10px 22px; border-radius: 30px; font-size: 0.75rem; cursor: pointer; font-weight: 700; box-shadow: 0 5px 15px var(--accent-glow); }
         #file-input { display: none; }
-        
         .playlist-header { font-weight: 700; font-size: 0.9rem; color: var(--text-dim); padding: 0 30px 15px; border-bottom: 1px solid var(--border); }
         #playlist { list-style: none; overflow-y: auto; flex: 1; }
         .playlist-item { padding: 15px 30px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; gap: 15px; align-items: center; }
         .playlist-item:hover { background: rgba(255,255,255,0.05); }
         .playlist-item.playing { background: rgba(0, 123, 255, 0.1); border-left: 4px solid var(--accent); }
-        
         #visualizer { width: 100%; height: 120px; flex: none; }
     </style>
 </head>
@@ -1101,29 +1033,17 @@ const musicPlayerHTML = `<!DOCTYPE html>
 
             async initAudioContext() {
                 if(this.audioCtx) return;
-
                 try {
                     await Tone.start();
                     this.audioCtx = Tone.getContext().rawContext;
-
-                    this.eq = new Tone.EQ3({
-                        low: parseInt(this.ui.bass.value),
-                        mid: 0,
-                        high: 0
-                    }).toDestination();
-
+                    this.eq = new Tone.EQ3({ low: parseInt(this.ui.bass.value), mid: 0, high: 0 }).toDestination();
                     const src = this.audioCtx.createMediaElementSource(this.media);
-
                     this.analyser = this.audioCtx.createAnalyser();
                     this.analyser.fftSize = 256;
-
                     Tone.connect(src, this.eq);
                     this.eq.connect(this.analyser);
-
                     this.resizeCanvas();
-                } catch (e) {
-                    console.error("AudioContext initialization failed:", e);
-                }
+                } catch (e) { console.error(e); }
             }
 
             async addFiles(files) {
@@ -1439,24 +1359,27 @@ const musicPlayerHTML = `<!DOCTYPE html>
                 r.onload=()=>res(r.result); r.onerror=e=>rej(e);
             }),
             // --- UI INTERACTION HELPERS ---
-            initInteractions: (container = document) => {
-                const selectors = '.btn, .tray-item, .nav-item, .spoof-item, .card-del-btn, .win-close, .beta-btn, .scroll-arrow, .game-card, .todo-item, .todo-toggle, .todo-delete';
-                container.querySelectorAll(selectors).forEach(el => {
-                    if (el.dataset.iinit) return;
-                    el.dataset.iinit = "true";
+            initInteractions: () => {
+                if (Utils._initialized) return;
+                Utils._initialized = true;
+                const selectors = '.btn, .tray-item, .nav-item, .spoof-item, .card-del-btn, .win-close, .beta-btn, .scroll-arrow, .game-card, .todo-item';
+                const getTarget = (e) => e.target.closest(selectors);
 
-                    el.addEventListener('mouseenter', () => {
-                        Motion.animate(el, { scale: 1.05 }, { type: "spring", stiffness: 400, damping: 20 });
-                    });
-                    el.addEventListener('mouseleave', () => {
-                        Motion.animate(el, { scale: 1 }, { type: "spring", stiffness: 400, damping: 20 });
-                    });
-                    el.addEventListener('mousedown', () => {
-                        Motion.animate(el, { scale: 0.92 }, { duration: 0.1 });
-                    });
-                    el.addEventListener('mouseup', () => {
-                        Motion.animate(el, { scale: 1.05 }, { type: "spring", stiffness: 500, damping: 15 });
-                    });
+                document.addEventListener('mouseover', (e) => {
+                    const el = getTarget(e);
+                    if (el && !el.contains(e.relatedTarget)) Motion.animate(el, { scale: 1.05 }, { type: "spring", stiffness: 400, damping: 20 });
+                });
+                document.addEventListener('mouseout', (e) => {
+                    const el = getTarget(e);
+                    if (el && !el.contains(e.relatedTarget)) Motion.animate(el, { scale: 1 }, { type: "spring", stiffness: 400, damping: 20 });
+                });
+                document.addEventListener('mousedown', (e) => {
+                    const el = getTarget(e);
+                    if (el) Motion.animate(el, { scale: 0.92 }, { duration: 0.1 });
+                });
+                document.addEventListener('mouseup', (e) => {
+                    const el = getTarget(e);
+                    if (el) Motion.animate(el, { scale: 1.05 }, { type: "spring", stiffness: 500, damping: 15 });
                 });
             }
         };
@@ -1593,7 +1516,6 @@ const Notifications = {
                         content.innerHTML = `<div class="notif-card">${html}</div>`;
                         localStorage.setItem(CACHE_KEY, JSON.stringify({ html, timestamp: Date.now() }));
                         Notifications.loaded = true;
-                        Utils.initInteractions(content);
                     })
                     .catch(e => {
                         console.error("Notif Error:", e);
@@ -1671,7 +1593,6 @@ const Notifications = {
                     filter: { ease: "circOut", duration: 0.5 },
                     type: "spring", stiffness: 300, damping: 25
                 }).then(() => {
-                    Utils.initInteractions();
                     // Animate New Badges
                     const badges = track.querySelectorAll('.new-badge');
                     if (badges.length > 0) {
@@ -1841,46 +1762,25 @@ const Notifications = {
         const Clock = {
             el: document.getElementById('clock'),
             update: () => {
-                const now = new Date();
-                let h = now.getHours();
-                let m = now.getMinutes();
-                
-                // Check Todo Alarms
-                Todo.checkAlarms(h, m);
-
-                if(!State.settings.time24) {
-                    h = h % 12;
-                    if(h === 0) h = 12;
-                }
-                const hStr = String(h);
-                const mStr = m < 10 ? '0'+m : String(m);
-                const fullStr = hStr + ':' + mStr;
+                const now = new Date(), h = now.getHours(), m = now.getMinutes();
+                const hDisplay = !State.settings.time24 ? (h % 12 || 12) : h;
+                const fullStr = `${hDisplay}:${m < 10 ? '0'+m : m}`;
 
                 if (Clock.el.dataset.time === fullStr) return;
+                Clock.el.dataset.time = fullStr;
+                Todo.checkAlarms(h, m);
 
-                if (!Clock.el.innerHTML || Clock.el.dataset.time?.length !== fullStr.length) {
-                    Clock.el.innerHTML = '';
-                    Clock.el.style.display = 'flex';
-                    Clock.el.style.justifyContent = 'center';
-                    [...fullStr].forEach(char => {
-                        const span = document.createElement('span');
-                        span.textContent = char;
-                        span.style.display = 'inline-block';
-                        Clock.el.appendChild(span);
-                    });
+                if (!Clock.el.children.length || Clock.el.children.length !== fullStr.length) {
+                    Clock.el.innerHTML = [...fullStr].map(c => `<span style="display:inline-block">${c}</span>`).join('');
                 } else {
-                    [...fullStr].forEach((char, i) => {
-                        const span = Clock.el.children[i];
-                        if (span && span.textContent !== char) {
-                            Motion.animate(span,
-                                { y: [-15, 0], opacity: [0, 1], filter: ['blur(4px)', 'blur(0px)'] },
-                                { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
-                            );
-                            span.textContent = char;
+                    [...fullStr].forEach((c, i) => {
+                        const s = Clock.el.children[i];
+                        if (s.textContent !== c) {
+                            s.textContent = c;
+                            Motion.animate(s, { y: [-15, 0], opacity: [0, 1], filter: ['blur(4px)', 'blur(0px)'] }, { duration: 0.6 });
                         }
                     });
                 }
-                Clock.el.dataset.time = fullStr;
             }
         };
 
@@ -1959,17 +1859,13 @@ const Notifications = {
                 }
             },
             checkAlarms: (h, m) => {
-                const currentStr = `${h < 10 ? '0'+h : h}:${m < 10 ? '0'+m : m}`;
-                let changed = false;
-                State.settings.todos.forEach(item => {
-                    if(item.time && !item.notified && item.time === currentStr) {
-                        item.notified = true;
-                        changed = true;
-                        Notifications.pushLocal("Reminder", item.t);
-                        Notifications.toggle(); // Auto open notifs
-                    }
-                });
-                if(changed) Settings.save('nx_todos', JSON.stringify(State.settings.todos));
+                const cur = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                const triggered = State.settings.todos.filter(t => t.time === cur && !t.notified);
+                if (triggered.length) {
+                    triggered.forEach(t => { t.notified = true; Notifications.pushLocal("Reminder", t.t); });
+                    Notifications.toggle();
+                    Settings.save('nx_todos', JSON.stringify(State.settings.todos));
+                }
             },
             render: () => {
                 const list = document.getElementById('todo-list');
@@ -2018,7 +1914,6 @@ const Notifications = {
                 }
 
                 lucide.createIcons();
-                Utils.initInteractions();
             }
         };
 
@@ -2131,7 +2026,6 @@ const Notifications = {
                         content.innerHTML = `<div class="notif-card">${html}</div>`;
                         localStorage.setItem(CACHE_KEY, JSON.stringify({ html, timestamp: Date.now() }));
                         Changelog.loaded = true;
-                        Utils.initInteractions(content);
                     })
                     .catch(e => {
                         console.error("Changelog Error:", e);
@@ -2357,7 +2251,6 @@ const Notifications = {
                     });
                     const items = grid.querySelectorAll('.spoof-item');
                     Motion.animate(items, { opacity: [0, 1], scale: [0.8, 1] }, { delay: Motion.stagger(0.03), type: "spring", stiffness: 400, damping: 25 });
-                    Utils.initInteractions(grid);
                     
                     setTimeout(() => document.getElementById('oobe-overlay').classList.add('active'), 50);
                 } else {
@@ -2377,17 +2270,8 @@ const Notifications = {
 
         window.onload = () => {
             document.title = `NexusOS ${CONFIG.version}`;
-            document.querySelectorAll('.pill-header').forEach(el => {
-                    if (el.textContent.trim() === 'NexusOS') el.textContent = `NexusOS ${CONFIG.version}`;
-            });
+            document.querySelectorAll('.pill-header').forEach(el => { if (el.textContent.trim() === 'NexusOS') el.textContent = `NexusOS ${CONFIG.version}`; });
 
-            Settings.apply();
-            Games.render();
-            Games.initWheel();
-            Todo.render();
-            Clock.update();
-            setInterval(Clock.update, 1000);
-            
             // Populate Settings Spoof Grid
             const sg = document.getElementById('settings-spoof-grid');
             Spoofs.forEach(s => {
@@ -2396,29 +2280,21 @@ const Notifications = {
                 d.onclick = () => Settings.setCloak(s.id);
                 sg.appendChild(d);
             });
-            Settings.setCloak(State.settings.cloak);
+
+            Settings.apply();
+            Games.render();
+            Games.initWheel();
+            Todo.render();
+            Clock.update();
+            setInterval(Clock.update, 1000);
             About.init();
             OOBE.init();
             Utils.initInteractions();
-
-            // Set initial view and position indicator
             View.set('games', true);
 
-            // Tray & Nav Entry Animations
-            Motion.animate(".tray-item", { opacity: [0, 1], y: [-20, 0] }, {
-                delay: Motion.stagger(0.1, { from: "last" }),
-                type: "spring", stiffness: 400, damping: 25
-            });
-            Motion.animate(".nav-item", { opacity: [0, 1], x: [-20, 0] }, {
-                delay: Motion.stagger(0.1),
-                type: "spring", stiffness: 400, damping: 25
-            });
-
-            // Init Lucide
+            Motion.animate(".tray-item", { opacity: [0, 1], y: [-20, 0] }, { delay: Motion.stagger(0.1, { from: "last" }), type: "spring", stiffness: 400, damping: 25 });
+            Motion.animate(".nav-item", { opacity: [0, 1], x: [-20, 0] }, { delay: Motion.stagger(0.1), type: "spring", stiffness: 400, damping: 25 });
             lucide.createIcons();
-
-            // Init Global Interactions
-            Utils.initInteractions();
         };
         
         window.addEventListener('beforeunload', (e) => {
