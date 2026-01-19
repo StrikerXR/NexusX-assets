@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zen Mahjong</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=Noto+Sans+Mahjong&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/motion@12.0.1/dist/motion.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(15, 23, 42, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #020617;
+            background-image: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
+            color: var(--text-main);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .logo {
+            font-weight: 800;
+            font-size: 1.5rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background: linear-gradient(to right, #fff, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            background: rgba(255,255,255,0.05);
+            padding: 8px 20px;
+            border-radius: 100px;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-item {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .stat-label {
+            color: var(--accent);
+            margin-right: 5px;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+        }
+
+        .game-area {
+            flex: 1;
+            position: relative;
+            perspective: 1000px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #board {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            transform-style: preserve-3d;
+        }
+
+        .tile {
+            position: absolute;
+            width: 58px;
+            height: 78px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom: 4px solid rgba(255, 255, 255, 0.05);
+            border-right: 4px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.4);
+            color: #fff;
+            font-family: 'Noto Sans Mahjong', sans-serif;
+            text-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        .tile:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateZ(10px);
+            z-index: 1000 !important;
+        }
+
+        .tile.selected {
+            background: var(--accent);
+            border-color: #fff;
+            transform: translateZ(20px) scale(1.05);
+            box-shadow: 0 0 20px var(--accent-glow);
+            z-index: 1001 !important;
+        }
+
+        .tile.hint {
+            animation: hintPulse 0.8s infinite alternate;
+        }
+
+        @keyframes hintPulse {
+            from { box-shadow: 0 0 0px var(--accent); }
+            to { box-shadow: 0 0 15px var(--accent), 0 0 30px var(--accent); }
+        }
+
+        .tile.blocked {
+            filter: brightness(0.4) grayscale(0.5);
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .controls {
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        #overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(15px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .overlay-content {
+            text-align: center;
+        }
+
+        .overlay-title {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(to bottom, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header" id="header-ui">
+        <div class="logo">Zen Mahjong</div>
+        <div class="stats">
+            <div class="stat-item"><span class="stat-label">Tiles</span><span id="tile-count">144</span></div>
+            <div class="stat-item"><span class="stat-label">Time</span><span id="timer">0:00</span></div>
+        </div>
+    </div>
+
+    <div class="game-area">
+        <div id="board"></div>
+    </div>
+
+    <div class="controls" id="controls-ui">
+        <button class="btn" onclick="game.shuffle()"><i data-lucide="refresh-cw"></i> Shuffle</button>
+        <button class="btn" onclick="game.hint()"><i data-lucide="lightbulb"></i> Hint</button>
+        <button class="btn btn-primary" onclick="game.init()"><i data-lucide="play"></i> New Game</button>
+    </div>
+
+    <div id="overlay">
+        <div class="overlay-content">
+            <div class="overlay-title" id="overlay-msg">Victory!</div>
+            <button class="btn btn-primary" onclick="game.init()" style="margin: 0 auto;">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        const TILE_TYPES = [
+            '🀀','🀁','🀂','🀃','🀄','🀅','🀆', // Winds & Dragons
+            '🀇','🀈','🀉','🀊','🀋','🀌','🀍','🀎','🀏', // Characters
+            '🀐','🀑','🀒','🀓','🀔','🀕','🀖','🀗','🀘', // Bamboo
+            '🀙','🀚','🀛','🀜','🀝','🀞','🀟','🀠','🀡', // Dots
+            '🀢','🀣','🀤','🀥','🀦','🀧','🀨','🀩'  // Flowers/Seasons
+        ];
+
+        class Mahjong {
+            constructor() {
+                this.board = document.getElementById('board');
+                this.tiles = [];
+                this.selected = null;
+                this.timer = 0;
+                this.timerInterval = null;
+                this.layout = this.getTurtleLayout();
+            }
+
+            getTurtleLayout() {
+                const layout = [];
+                // Layout logic for a classic turtle shape
+                // Level 0 (Base)
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 12; c++) {
+                        if ((r === 0 || r === 7) && (c < 2 || c > 9)) continue;
+                        if ((r === 1 || r === 6) && (c < 1 || c > 10)) continue;
+                        layout.push({ r, c, z: 0 });
+                    }
+                }
+                // Level 1
+                for (let r = 1; r < 7; r++) {
+                    for (let c = 2; c < 10; c++) {
+                        layout.push({ r, c, z: 1 });
+                    }
+                }
+                // Level 2
+                for (let r = 2; r < 6; r++) {
+                    for (let c = 3; c < 9; c++) {
+                        layout.push({ r, c, z: 2 });
+                    }
+                }
+                // Level 3
+                for (let r = 3; r < 5; r++) {
+                    for (let c = 4; c < 8; c++) {
+                        layout.push({ r, c, z: 3 });
+                    }
+                }
+                // Level 4 (Top)
+                layout.push({ r: 3.5, c: 5.5, z: 4 });
+                layout.push({ r: 3.5, c: 6.5, z: 4 });
+
+                // We need exactly 144 tiles (72 pairs)
+                return layout.slice(0, 144);
+            }
+
+            init() {
+                this.board.innerHTML = '';
+                document.getElementById('overlay').style.display = 'none';
+                this.tiles = [];
+                this.selected = null;
+
+                // Prepare tiles (36 types * 4 = 144)
+                let types = [];
+                for (let i = 0; i < 36; i++) {
+                    for (let j = 0; j < 4; j++) {
+                        types.push(TILE_TYPES[i]);
+                    }
+                }
+                this.shuffleArray(types);
+
+                this.layout.forEach((pos, i) => {
+                    const tile = {
+                        id: i,
+                        type: types[i] || TILE_TYPES[0], // Fallback to avoid undefined
+                        r: pos.r,
+                        c: pos.c,
+                        z: pos.z,
+                        el: null,
+                        removed: false
+                    };
+                    this.tiles.push(tile);
+                    this.renderTile(tile);
+                });
+
+                this.updateCount();
+                this.startTimer();
+                this.updatePlayability();
+
+                // Entrance animation
+                Motion.animate("#header-ui", { y: [-50, 0], opacity: [0, 1] }, { duration: 0.8 });
+                Motion.animate("#controls-ui", { y: [50, 0], opacity: [0, 1] }, { duration: 0.8 });
+            }
+
+            renderTile(tile) {
+                const el = document.createElement('div');
+                el.className = 'tile';
+                el.innerHTML = tile.type;
+                el.style.left = (tile.c * 56 + tile.z * 6) + 'px';
+                el.style.top = (tile.r * 74 - tile.z * 6) + 'px';
+                el.style.zIndex = tile.z * 100 + tile.r; // Depth sorting
+
+                el.onclick = () => this.handleSelect(tile);
+                tile.el = el;
+                this.board.appendChild(el);
+
+                Motion.animate(el, {
+                    opacity: [0, 1],
+                    scale: [0.5, 1],
+                    z: [-100, 0]
+                }, {
+                    delay: (tile.z * 20 + tile.id % 20) * 0.01,
+                    duration: 0.4
+                });
+            }
+
+            handleSelect(tile) {
+                if (tile.removed || this.isBlocked(tile)) return;
+
+                if (this.selected) {
+                    if (this.selected.id === tile.id) {
+                        this.selected.el.classList.remove('selected');
+                        this.selected = null;
+                    } else if (this.selected.type === tile.type) {
+                        this.removePair(this.selected, tile);
+                        this.selected = null;
+                    } else {
+                        this.selected.el.classList.remove('selected');
+                        this.selected = tile;
+                        tile.el.classList.add('selected');
+                    }
+                } else {
+                    this.selected = tile;
+                    tile.el.classList.add('selected');
+                }
+            }
+
+            isBlocked(tile) {
+                // Check if covered by another tile
+                const isCovered = this.tiles.some(t =>
+                    !t.removed && t.z > tile.z &&
+                    Math.abs(t.r - tile.r) < 1 && Math.abs(t.c - tile.c) < 1
+                );
+                if (isCovered) return true;
+
+                // Check left/right side
+                const leftBlocked = this.tiles.some(t =>
+                    !t.removed && t.z === tile.z &&
+                    Math.abs(t.r - tile.r) < 1 && (t.c === tile.c - 1)
+                );
+                const rightBlocked = this.tiles.some(t =>
+                    !t.removed && t.z === tile.z &&
+                    Math.abs(t.r - tile.r) < 1 && (t.c === tile.c + 1)
+                );
+
+                return leftBlocked && rightBlocked;
+            }
+
+            removePair(t1, t2) {
+                t1.removed = true;
+                t2.removed = true;
+
+                const animOpts = { duration: 0.3, easing: 'ease-in' };
+                Motion.animate(t1.el, { opacity: 0, scale: 1.5, y: -20 }, animOpts);
+                Motion.animate(t2.el, { opacity: 0, scale: 1.5, y: -20 }, animOpts).finished.then(() => {
+                    t1.el.style.display = 'none';
+                    t2.el.style.display = 'none';
+                    this.updateCount();
+                    this.checkGameState();
+                });
+            }
+
+            checkGameState() {
+                const remaining = this.tiles.filter(t => !t.removed);
+                if (remaining.length === 0) {
+                    this.win();
+                } else {
+                    this.updatePlayability();
+                }
+            }
+
+            updatePlayability() {
+                this.tiles.forEach(t => {
+                    if (t.el) {
+                        t.el.classList.toggle('blocked', !t.removed && this.isBlocked(t));
+                    }
+                });
+            }
+
+            shuffle() {
+                const remaining = this.tiles.filter(t => !t.removed);
+                const types = remaining.map(t => t.type);
+                this.shuffleArray(types);
+                remaining.forEach((t, i) => {
+                    t.type = types[i];
+                    t.el.innerHTML = t.type;
+                });
+                this.updatePlayability();
+            }
+
+            hint() {
+                const playable = this.tiles.filter(t => !t.removed && !this.isBlocked(t));
+                for (let i = 0; i < playable.length; i++) {
+                    for (let j = i + 1; j < playable.length; j++) {
+                        if (playable[i].type === playable[j].type) {
+                            const p1 = playable[i].el;
+                            const p2 = playable[j].el;
+                            p1.classList.add('hint');
+                            p2.classList.add('hint');
+                            setTimeout(() => {
+                                p1.classList.remove('hint');
+                                p2.classList.remove('hint');
+                            }, 2000);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            updateCount() {
+                document.getElementById('tile-count').innerText = this.tiles.filter(t => !t.removed).length;
+            }
+
+            startTimer() {
+                clearInterval(this.timerInterval);
+                this.timer = 0;
+                this.timerInterval = setInterval(() => {
+                    this.timer++;
+                    const m = Math.floor(this.timer / 60);
+                    const s = this.timer % 60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' + s : s}`;
+                }, 1000);
+            }
+
+            win() {
+                clearInterval(this.timerInterval);
+                document.getElementById('overlay-msg').innerText = "Victory!";
+                document.getElementById('overlay').style.display = 'flex';
+                Motion.animate("#overlay", { opacity: [0, 1] }, { duration: 0.5 });
+            }
+        }
+
+        const game = new Mahjong();
+        window.onload = () => {
+            lucide.createIcons();
+            // Start game immediately, but font might still be loading
+            game.init();
+
+            // Re-render once font is likely loaded to ensure glyphs show
+            document.fonts.ready.then(() => {
+                game.tiles.forEach(t => {
+                    if (t.el) t.el.innerHTML = t.type;
+                });
+            });
+        };
+    </script>
+</body>
+</html>
